@@ -132,10 +132,10 @@
 
     // 2. KHỞI TẠO BẢN ĐỒ GIAO DIỆN TỐI (DARK MODE) CHUẨN QUÂN SỰ
     const map = L.map('map', { zoomControl: true }).setView([21.0285, 105.8542], 16);
-    // Dùng bản đồ CartoDB Dark Matter nhìn cực kỳ ngầu
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '© OpenStreetMap © CartoDB',
-      maxZoom: 20
+   // Dùng bản đồ chuẩn miễn phí
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 19
     }).addTo(map);
 
     // Đổi icon marker thành hình máy bay
