@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UAV Ground Station - Live GPS</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #0f172a; color: #f8fafc; display: flex; flex-direction: column; height: 100vh; }
+    header { background: #1e293b; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+    .status { padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: bold; }
+    .online { background: #16a34a; color: white; }
+    .offline { background: #dc2626; color: white; }
+    .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; padding: 12px 20px; background: #1e293b; }
+    .card { background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155; text-align: center; }
+    .card span { display: block; font-size: 12px; color: #94a3b8; }
+    .card strong { font-size: 18px; color: #38bdf8; }
+    #map { flex: 1; width: 100%; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div><strong>🛰️ UAV TELEMETRY STATION</strong></div>
+  <div id="connStatus" class="status offline">ĐANG KẾT NỐI...</div>
+</header>
+
+<div class="dashboard">
+  <div class="card"><span>VĨ ĐỘ (LAT)</span><strong id="lat">0.000000</strong></div>
+  <div class="card"><span>KINH ĐỘ (LON)</span><strong id="lon">0.000000</strong></div>
+  <div class="card"><span>ĐỘ CAO</span><strong id="alt">0.0 m</strong></div>
+  <div class="card"><span>VỆ TINH</span><strong id="sat">0</strong></div>
+  <div class="card"><span>PIN UAV</span><strong id="bat">0.0 V</strong></div>
+  <div class="card"><span>GÓC R / P</span><strong id="att">0° / 0°</strong></div>
+</div>
+
+<div id="map"></div>
+
+<script>
+  // 1. CẤU HÌNH KÊNH DỮ LIỆU (Đổi tên chuỗi này cho khớp với code ESP32 của bạn)
+  const MQTT_TOPIC = "uav/telemetry/du_an_gps_cua_toi_999";
+  const BROKER_URL = "wss://broker.emqx.io:8084/mqtt";
+
+  // 2. KHỞI TẠO BẢN ĐỒ (Mặc định tại Hà Nội)
+  const map = L.map('map').setView([21.0285, 105.8542], 16);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  const marker = L.marker([21.0285, 105.8542]).addTo(map).bindPopup("Vị trí UAV").openPopup();
+  const pathLine = L.polyline([], { color: '#38bdf8', weight: 3 }).addTo(map);
+  let firstFix = true;
+
+  // 3. KẾT NỐI MQTT CLOUD
+  const client = mqtt.connect(BROKER_URL);
+  const statusEl = document.getElementById('connStatus');
+
+  client.on('connect', () => {
+    statusEl.textContent = "ĐÃ KẾT NỐI CLOUD";
+    statusEl.className = "status online";
+    client.subscribe(MQTT_TOPIC);
+  });
+
+  client.on('close', () => {
+    statusEl.textContent = "MẤT KẾT NỐI";
+    statusEl.className = "status offline";
+  });
+
+  client.on('message', (topic, message) => {
+    try {
+      const data = JSON.parse(message.toString());
+      document.getElementById('lat').textContent = data.lat.toFixed(6);
+      document.getElementById('lon').textContent = data.lon.toFixed(6);
+      document.getElementById('alt').textContent = data.alt.toFixed(1) + " m";
+      document.getElementById('sat').textContent = data.sat;
+      document.getElementById('bat').textContent = data.bat.toFixed(2) + " V";
+      document.getElementById('att').textContent = `${data.roll.toFixed(0)}° / ${data.pitch.toFixed(0)}°`;
+
+      if (data.lat !== 0 && data.lon !== 0) {
+        const pos = [data.lat, data.lon];
+        marker.setLatLng(pos);
+        pathLine.addLatLng(pos);
+        if (firstFix) {
+          map.setView(pos, 18);
+          firstFix = false;
+        }
+      }
+    } catch (e) {
+      console.error("Lỗi đọc gói tin:", e);
+    }
+  });
+</script>
+</body>
+</html>
