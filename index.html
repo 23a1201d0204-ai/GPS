@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UAV Ground Station - 2 ESP32 + ATGM336H</title>
+  <meta name="theme-color" content="#07111f" />
+  <title>UAV Ground Station | Live Telemetry</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -13,262 +14,623 @@
 
   <style>
     :root {
+      color-scheme: dark;
+      --bg: #07111f;
+      --panel: rgba(13, 27, 45, .88);
+      --panel-strong: rgba(11, 23, 39, .96);
+      --line: rgba(125, 173, 210, .16);
+      --line-bright: rgba(56, 189, 248, .34);
       --cyan: #38bdf8;
+      --cyan-soft: rgba(56, 189, 248, .12);
       --green: #4ade80;
-      --red: #f87171;
+      --red: #fb7185;
       --amber: #fbbf24;
-      --panel: rgba(15, 23, 42, .91);
-      --muted: #94a3b8;
+      --muted: #8fa5bb;
+      --text: #e8f1fa;
+      --shadow: 0 18px 50px rgba(0, 0, 0, .28);
     }
 
-    * {
-      box-sizing: border-box;
+    * { box-sizing: border-box; }
+
+    html {
+      min-height: 100%;
+      scroll-behavior: smooth;
     }
 
-    html, body {
+    body {
+      min-height: 100vh;
       margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #020617;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% -10%, rgba(14, 116, 144, .20), transparent 32rem),
+        radial-gradient(circle at 92% 0%, rgba(37, 99, 235, .13), transparent 30rem),
+        var(--bg);
       font-family: 'Rajdhani', sans-serif;
+      overflow-x: hidden;
     }
 
-    #map {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      background: #0f172a;
-    }
+    button { font: inherit; }
 
-    .leaflet-control-container .leaflet-top {
-      top: 84px;
-    }
-
-    .ui-layer {
-      position: absolute;
-      inset: 0;
-      z-index: 500;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      pointer-events: none;
-    }
-
-    .pointer-auto {
-      pointer-events: auto;
-    }
-
-    .top-bar {
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 18px;
-      padding: 13px 24px;
-      color: #e2e8f0;
-      background: rgba(15, 23, 42, .88);
-      backdrop-filter: blur(14px);
-      border-bottom: 1px solid rgba(56, 189, 248, .42);
-      box-shadow: 0 4px 28px rgba(0,0,0,.45);
+      gap: 22px;
+      padding: 15px clamp(16px, 3vw, 42px);
+      border-bottom: 1px solid rgba(56, 189, 248, .22);
+      background: rgba(5, 15, 28, .86);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 8px 30px rgba(0,0,0,.22);
     }
 
-    .logo {
+    .brand {
       display: flex;
       align-items: center;
-      gap: 11px;
+      gap: 13px;
+      min-width: 250px;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border: 1px solid rgba(56, 189, 248, .42);
+      border-radius: 13px;
       color: var(--cyan);
-      font-size: 23px;
+      background: linear-gradient(145deg, rgba(56,189,248,.2), rgba(14,165,233,.04));
+      box-shadow: inset 0 0 18px rgba(56,189,248,.08), 0 0 22px rgba(56,189,248,.08);
+      font-size: 19px;
+    }
+
+    .brand-title {
+      margin: 0;
+      color: #f4f9ff;
+      font-size: 20px;
       font-weight: 700;
       letter-spacing: 1.7px;
-      white-space: nowrap;
+      line-height: 1.05;
     }
 
-    .logo i {
-      font-size: 25px;
-      text-shadow: 0 0 15px rgba(56,189,248,.6);
+    .brand-subtitle {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
     }
 
     .status-group {
       display: flex;
-      justify-content: flex-end;
       flex-wrap: wrap;
-      gap: 9px;
+      justify-content: flex-end;
+      gap: 8px;
     }
 
     .status-badge {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 7px 12px;
+      gap: 7px;
+      min-height: 34px;
+      padding: 7px 11px;
       border: 1px solid;
-      border-radius: 22px;
-      font-size: 13px;
+      border-radius: 999px;
+      font-size: 12px;
       font-weight: 700;
-      letter-spacing: .7px;
+      letter-spacing: .55px;
       white-space: nowrap;
-      transition: .2s ease;
+      background: rgba(255,255,255,.035);
+      transition: background .2s ease, border-color .2s ease;
     }
 
     .status-ok {
       color: var(--green);
-      border-color: var(--green);
-      background: rgba(22,163,74,.14);
+      border-color: rgba(74,222,128,.38);
+      background: rgba(22,163,74,.10);
     }
 
     .status-bad {
       color: var(--red);
-      border-color: var(--red);
-      background: rgba(220,38,38,.14);
+      border-color: rgba(251,113,133,.38);
+      background: rgba(220,38,38,.10);
     }
 
     .status-warn {
       color: var(--amber);
-      border-color: var(--amber);
-      background: rgba(245,158,11,.13);
+      border-color: rgba(251,191,36,.38);
+      background: rgba(245,158,11,.09);
     }
 
     .status-info {
       color: var(--cyan);
-      border-color: var(--cyan);
-      background: rgba(56,189,248,.13);
+      border-color: rgba(56,189,248,.38);
+      background: rgba(56,189,248,.09);
     }
 
-    .map-hint {
-      position: absolute;
-      top: 88px;
-      left: 18px;
-      max-width: 290px;
-      padding: 10px 13px;
-      border: 1px solid rgba(56,189,248,.28);
-      border-radius: 12px;
-      color: #cbd5e1;
-      background: rgba(15,23,42,.82);
-      backdrop-filter: blur(10px);
-      font-size: 13px;
-      line-height: 1.35;
+    .dashboard-shell {
+      width: min(1600px, 100%);
+      margin: 0 auto;
+      padding: 26px clamp(14px, 2.6vw, 38px) 42px;
     }
 
-    .map-hint strong {
+    .page-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      margin-bottom: 17px;
+    }
+
+    .eyebrow {
       color: var(--cyan);
-    }
-
-    .dashboard-container {
-      padding: 18px 22px 20px;
-      display: flex;
-      justify-content: center;
-    }
-
-    .dashboard-wrap {
-      width: 100%;
-      max-width: 1420px;
-    }
-
-    .telemetry-panel {
-      display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 10px;
-      padding: 17px 18px;
-      border: 1px solid rgba(56,189,248,.35);
-      border-radius: 18px;
-      background: var(--panel);
-      backdrop-filter: blur(18px);
-      box-shadow: 0 10px 40px rgba(0,0,0,.55);
-    }
-
-    .data-card {
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      text-align: center;
-    }
-
-    .data-card:not(:last-child)::after {
-      content: '';
-      position: absolute;
-      right: -5px;
-      top: 12%;
-      height: 76%;
-      width: 1px;
-      background: rgba(255,255,255,.11);
-    }
-
-    .data-icon {
-      margin-bottom: 5px;
-      color: var(--muted);
-      font-size: 21px;
-    }
-
-    .data-label {
-      color: var(--muted);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
-      letter-spacing: 1.1px;
+      letter-spacing: 2.4px;
       text-transform: uppercase;
     }
 
-    .data-value {
-      margin-top: 4px;
-      color: #f8fafc;
-      font: 700 clamp(19px, 2.1vw, 29px) 'Share Tech Mono', monospace;
+    .page-heading h1 {
+      margin: 4px 0 0;
+      color: #f3f8ff;
+      font-size: clamp(25px, 3vw, 36px);
+      line-height: 1;
+      letter-spacing: .5px;
+    }
+
+    .page-heading p {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .live-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid rgba(74,222,128,.24);
+      border-radius: 999px;
+      color: #b7f7ca;
+      background: rgba(22,163,74,.08);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
       white-space: nowrap;
     }
 
-    .data-unit {
-      color: var(--cyan);
-      font: 600 14px 'Rajdhani', sans-serif;
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 12px var(--green);
+      animation: pulse 1.8s infinite;
     }
 
-    .highlight {
-      color: var(--green);
+    @keyframes pulse {
+      0%,100% {
+        opacity: 1;
+        box-shadow: 0 0 0 0 rgba(74,222,128,.38);
+      }
+      50% {
+        opacity: .72;
+        box-shadow: 0 0 0 7px rgba(74,222,128,0);
+      }
     }
 
-    .bottom-meta {
+    .primary-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.95fr) minmax(300px, .95fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .panel {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: linear-gradient(145deg, rgba(17, 37, 59, .94), rgba(9, 22, 38, .92));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .map-panel {
+      overflow: hidden;
+      border-color: rgba(56,189,248,.31);
+      box-shadow: 0 20px 55px rgba(0,0,0,.3), 0 0 35px rgba(14,165,233,.06);
+    }
+
+    .panel-head {
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      margin-top: 9px;
-      padding: 9px 13px;
-      border: 1px solid rgba(148,163,184,.2);
-      border-radius: 11px;
-      background: rgba(15,23,42,.86);
-      color: #cbd5e1;
-      font-size: 13px;
+      padding: 17px 20px;
+      border-bottom: 1px solid var(--line);
     }
 
-    .meta-left, .meta-right {
+    .panel-title {
+      margin: 3px 0 0;
+      color: #f0f7ff;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .panel-caption {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .map-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 10px;
+      border: 1px solid rgba(56,189,248,.23);
+      border-radius: 999px;
+      color: #9edfff;
+      background: rgba(56,189,248,.08);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+
+    .map-area {
+      position: relative;
+      height: clamp(440px, 57vw, 650px);
+      min-height: 400px;
+      background: #0b1b2d;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #0b1b2d;
+    }
+
+    .map-footer {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 15px;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 17px;
+      border-top: 1px solid var(--line);
+      background: rgba(5,15,28,.56);
     }
 
-    .meta-item {
+    .map-footer-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .map-meta {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
     }
 
-    .meta-item i {
-      color: var(--cyan);
-    }
+    .map-meta i { color: var(--cyan); }
+    .map-meta strong { color: var(--text); }
 
     .action-btn {
-      border: 1px solid rgba(56,189,248,.5);
-      border-radius: 8px;
-      padding: 6px 10px;
-      color: var(--cyan);
-      background: rgba(56,189,248,.1);
-      font: 700 12px 'Rajdhani', sans-serif;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 12px;
+      border: 1px solid rgba(56,189,248,.3);
+      border-radius: 10px;
+      color: #a8e4ff;
+      background: rgba(56,189,248,.09);
+      font-size: 12px;
+      font-weight: 700;
       cursor: pointer;
+      transition: .2s ease;
     }
 
     .action-btn:hover {
-      background: rgba(56,189,248,.22);
+      transform: translateY(-2px);
+      border-color: rgba(56,189,248,.6);
+      background: rgba(56,189,248,.17);
+    }
+
+    .side-column {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .side-panel { padding: 18px; }
+
+    .side-panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .side-panel-head h2 {
+      margin: 0;
+      color: #eef7ff;
+      font-size: 17px;
+    }
+
+    .side-panel-head i { color: var(--cyan); }
+
+    .coordinate-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .metric-card {
+      position: relative;
+      isolation: isolate;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      width: 100%;
+      min-width: 0;
+      min-height: 118px;
+      padding: 16px;
+      overflow: hidden;
+      text-align: left;
+      color: var(--text);
+      cursor: pointer;
+      border: 1px solid rgba(135,174,205,.15);
+      border-radius: 16px;
+      background: linear-gradient(145deg, rgba(22,45,69,.83), rgba(11,26,44,.9));
+      box-shadow: 0 8px 24px rgba(0,0,0,.13);
+      transition: transform .24s ease, border-color .24s ease, box-shadow .24s ease, background .24s ease;
+    }
+
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      z-index: -1;
+      width: 140px;
+      height: 140px;
+      top: -82px;
+      right: -54px;
+      border-radius: 50%;
+      background: var(--card-glow, rgba(56,189,248,.15));
+      filter: blur(2px);
+      transition: transform .3s ease, opacity .3s ease;
+      opacity: .72;
+    }
+
+    .metric-card:hover,
+    .metric-card:focus-visible {
+      transform: translateY(-5px);
+      border-color: rgba(56,189,248,.48);
+      background: linear-gradient(145deg, rgba(25,53,80,.97), rgba(11,28,48,.96));
+      box-shadow: 0 15px 32px rgba(0,0,0,.24), 0 0 22px rgba(56,189,248,.09);
+      outline: none;
+    }
+
+    .metric-card:hover::before {
+      transform: scale(1.28);
+      opacity: 1;
+    }
+
+    .metric-card:active {
+      transform: translateY(-1px) scale(.99);
+    }
+
+    .metric-card--coordinate {
+      min-height: 126px;
+      padding: 14px;
+    }
+
+    .metric-card--coordinate .metric-value {
+      font-size: clamp(16px, 1.4vw, 21px);
+    }
+
+    .metric-card--small {
+      min-height: 110px;
+      padding: 13px;
+    }
+
+    .metric-top {
+      display: flex;
+      width: 100%;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 13px;
+    }
+
+    .metric-icon {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(56,189,248,.2);
+      border-radius: 11px;
+      color: var(--cyan);
+      background: rgba(56,189,248,.09);
+      font-size: 15px;
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.25px;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      display: block;
+      max-width: 100%;
+      color: #f3f8ff;
+      font: 700 clamp(22px, 2vw, 30px) 'Share Tech Mono', monospace;
+      line-height: 1.1;
+      overflow-wrap: anywhere;
+    }
+
+    .metric-unit {
+      margin-left: 4px;
+      color: var(--cyan);
+      font: 600 13px 'Rajdhani', sans-serif;
+    }
+
+    .metric-note {
+      margin-top: 7px;
+      color: #6f8aa3;
+      font-size: 11px;
+    }
+
+    .metric-hint {
+      position: absolute;
+      right: 13px;
+      bottom: 12px;
+      color: rgba(148,163,184,.55);
+      font-size: 10px;
+      letter-spacing: .6px;
+      opacity: 0;
+      transform: translateY(3px);
+      transition: .2s ease;
+    }
+
+    .metric-card:hover .metric-hint,
+    .metric-card:focus-visible .metric-hint {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .fix-status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      padding: 12px 13px;
+      border: 1px solid rgba(74,222,128,.18);
+      border-radius: 13px;
+      background: rgba(22,163,74,.055);
+    }
+
+    .fix-status span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .fix-status strong {
+      color: var(--green);
+      font-size: 13px;
+    }
+
+    .system-list {
+      display: grid;
+      gap: 0;
+    }
+
+    .system-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid rgba(148,163,184,.1);
+    }
+
+    .system-row:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .system-row span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .system-row span i {
+      width: 15px;
+      color: var(--cyan);
+      text-align: center;
+    }
+
+    .system-row strong {
+      color: #e7f3ff;
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .section-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 14px;
+      margin: 28px 2px 14px;
+    }
+
+    .section-heading h2 {
+      margin: 3px 0 0;
+      color: #eff7ff;
+      font-size: 22px;
+    }
+
+    .section-heading p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 14px;
+    }
+
+    .metrics-grid .metric-card {
+      min-height: 150px;
+      padding: 17px;
+    }
+
+    .metrics-grid .metric-value {
+      font-size: clamp(25px, 2.6vw, 35px);
+    }
+
+    .metrics-grid .metric-top { margin-bottom: 17px; }
+
+    .metrics-grid .metric-icon {
+      width: 39px;
+      height: 39px;
+      font-size: 17px;
+    }
+
+    .attitude-values {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .attitude-part {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 3px;
+    }
+
+    .attitude-divider {
+      color: #536e86;
+      font-size: 20px;
     }
 
     .uav-marker {
@@ -278,254 +640,565 @@
 
     .uav-marker i {
       color: var(--cyan);
-      font-size: 26px;
-      text-shadow: 0 0 10px #38bdf8,
-                   0 0 18px rgba(56,189,248,.7);
+      font-size: 27px;
+      text-shadow: 0 0 10px #38bdf8, 0 0 18px rgba(56,189,248,.78);
     }
 
-    @media (max-width: 950px) {
-      .top-bar {
+    .leaflet-control-attribution { font-size: 9px !important; }
+
+    /* Popup mở khi bấm vào từng thẻ dữ liệu */
+    .modal-backdrop {
+      position: fixed;
+      z-index: 2000;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(1,8,16,.72);
+      backdrop-filter: blur(10px);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .2s ease, visibility .2s ease;
+    }
+
+    .modal-backdrop.is-open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .detail-modal {
+      width: min(440px, 100%);
+      padding: 22px;
+      border: 1px solid rgba(56,189,248,.35);
+      border-radius: 22px;
+      background: linear-gradient(145deg, rgba(18,42,66,.98), rgba(7,19,34,.99));
+      box-shadow: 0 28px 90px rgba(0,0,0,.55), 0 0 35px rgba(56,189,248,.1);
+      transform: translateY(14px) scale(.98);
+      transition: transform .22s ease;
+    }
+
+    .modal-backdrop.is-open .detail-modal {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .modal-head h2 {
+      margin: 0;
+      color: #f1f8ff;
+      font-size: 21px;
+    }
+
+    .modal-close {
+      display: grid;
+      place-items: center;
+      width: 35px;
+      height: 35px;
+      border: 1px solid rgba(148,163,184,.2);
+      border-radius: 11px;
+      color: #c5d7e8;
+      background: rgba(255,255,255,.04);
+      cursor: pointer;
+    }
+
+    .modal-close:hover {
+      color: white;
+      border-color: rgba(56,189,248,.42);
+      background: rgba(56,189,248,.12);
+    }
+
+    .modal-value-wrap {
+      margin: 20px 0 14px;
+      padding: 18px;
+      border: 1px solid rgba(56,189,248,.2);
+      border-radius: 15px;
+      background: rgba(56,189,248,.06);
+    }
+
+    .modal-value-label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .modal-value {
+      margin-top: 6px;
+      color: #f5fbff;
+      font: 700 clamp(26px, 7vw, 36px) 'Share Tech Mono', monospace;
+      overflow-wrap: anywhere;
+    }
+
+    .modal-description {
+      margin: 0;
+      color: #a9bdcf;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .modal-foot {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 18px;
+      color: #6e8aa4;
+      font-size: 11px;
+    }
+
+    .modal-foot i { color: var(--cyan); }
+
+    @media (max-width: 1100px) {
+      .topbar {
         align-items: flex-start;
         flex-direction: column;
-        padding: 10px 14px;
-        gap: 8px;
+        gap: 12px;
       }
 
-      .logo {
-        font-size: 19px;
+      .status-group { justify-content: flex-start; }
+
+      .primary-grid {
+        grid-template-columns: minmax(0, 1.5fr) minmax(280px, .9fr);
       }
 
-      .status-group {
-        justify-content: flex-start;
-      }
-
-      .status-badge {
-        padding: 6px 9px;
-        font-size: 11px;
-      }
-
-      .leaflet-control-container .leaflet-top {
-        top: 132px;
-      }
-
-      .map-hint {
-        top: 139px;
-        left: 12px;
-        max-width: 230px;
-      }
-
-      .dashboard-container {
-        padding: 10px;
-      }
-
-      .telemetry-panel {
+      .metrics-grid {
         grid-template-columns: repeat(3, minmax(0,1fr));
-        row-gap: 15px;
-        padding: 13px 8px;
-      }
-
-      .data-card:nth-child(3)::after {
-        display: none;
-      }
-
-      .data-card:nth-child(4)::after,
-      .data-card:nth-child(5)::after {
-        display: block;
-      }
-
-      .data-value {
-        font-size: 20px;
-      }
-
-      .bottom-meta {
-        align-items: flex-start;
-        flex-direction: column;
       }
     }
 
-    @media (max-width: 480px) {
-      .logo {
-        font-size: 17px;
+    @media (max-width: 820px) {
+      .primary-grid { grid-template-columns: 1fr; }
+      .map-area { height: 520px; }
+
+      .side-column {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0,1fr));
       }
 
-      .status-group {
-        gap: 5px;
+      .side-column .system-panel { grid-column: 1 / -1; }
+
+      .metrics-grid {
+        grid-template-columns: repeat(2, minmax(0,1fr));
       }
+    }
+
+    @media (max-width: 540px) {
+      .topbar { padding: 12px 14px; }
+      .brand { min-width: 0; }
+      .brand-title { font-size: 17px; }
+      .brand-subtitle { font-size: 9px; letter-spacing: 1.5px; }
+
+      .brand-mark {
+        width: 38px;
+        height: 38px;
+      }
+
+      .status-group { gap: 6px; }
 
       .status-badge {
+        min-height: 30px;
+        padding: 6px 8px;
         font-size: 10px;
-        padding: 5px 7px;
       }
 
-      .map-hint {
-        display: none;
+      .dashboard-shell { padding: 20px 12px 30px; }
+
+      .page-heading {
+        align-items: flex-start;
+        flex-direction: column;
       }
 
-      .dashboard-container {
-        padding: 7px;
+      .page-heading h1 { font-size: 27px; }
+      .map-area { height: 430px; min-height: 360px; }
+      .panel-head { padding: 14px; }
+      .panel-title { font-size: 17px; }
+      .map-footer { padding: 11px; }
+      .map-footer-group { gap: 9px; }
+      .map-meta { font-size: 11px; }
+
+      .side-column { grid-template-columns: 1fr; }
+      .side-column .system-panel { grid-column: auto; }
+      .side-panel { padding: 15px; }
+      .metric-card--coordinate { min-height: 112px; }
+      .coordinate-grid { gap: 8px; }
+      .metric-card--coordinate .metric-value { font-size: 16px; }
+      .metrics-grid { gap: 9px; }
+
+      .metrics-grid .metric-card {
+        min-height: 133px;
+        padding: 13px;
       }
 
-      .telemetry-panel {
-        gap: 12px 4px;
+      .metrics-grid .metric-value { font-size: 25px; }
+
+      .section-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        margin-top: 23px;
       }
 
-      .data-label {
-        font-size: 10px;
-        letter-spacing: .5px;
-      }
+      .section-heading h2 { font-size: 20px; }
+    }
 
-      .data-value {
-        font-size: 17px;
-      }
-
-      .data-icon {
-        font-size: 17px;
-      }
-
-      .bottom-meta {
-        font-size: 11px;
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
       }
     }
   </style>
 </head>
 
 <body>
-  <div id="map"></div>
-
-  <div class="ui-layer">
-
-    <header class="top-bar pointer-auto">
-      <div class="logo">
-        <i class="fa-solid fa-plane-up"></i>
-        UAV GROUND STATION
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark"><i class="fa-solid fa-plane-up"></i></div>
+      <div>
+        <h1 class="brand-title">UAV GROUND STATION</h1>
+        <div class="brand-subtitle">2 ESP32 · ATGM336H · LIVE TELEMETRY</div>
       </div>
-
-      <div class="status-group">
-        <div id="cloudStatus" class="status-badge status-bad">
-          <i class="fa-solid fa-server"></i>
-          MQTT: ĐANG KẾT NỐI...
-        </div>
-
-        <div id="gpsEspStatus" class="status-badge status-bad">
-          <i class="fa-solid fa-satellite-dish"></i>
-          ESP32 GPS: OFFLINE
-        </div>
-
-        <div id="rxEspStatus" class="status-badge status-bad">
-          <i class="fa-solid fa-microchip"></i>
-          ESP32 NHẬN: OFFLINE
-        </div>
-
-        <div id="linkStatus" class="status-badge status-warn">
-          <i class="fa-solid fa-link"></i>
-          LIÊN KẾT: CHƯA CÓ DỮ LIỆU
-        </div>
-      </div>
-    </header>
-
-    <div class="map-hint pointer-auto">
-      <strong>
-        <i class="fa-solid fa-circle-info"></i>
-        SƠ ĐỒ TRUYỀN DỮ LIỆU
-      </strong>
-      <br />
-      ESP32 #1 + ATGM336H → MQTT Broker → ESP32 #2 và Website
     </div>
 
-    <section class="dashboard-container pointer-auto">
-      <div class="dashboard-wrap">
+    <div class="status-group" aria-label="Trạng thái kết nối">
+      <div id="cloudStatus" class="status-badge status-bad">
+        <i class="fa-solid fa-server"></i> MQTT: ĐANG KẾT NỐI...
+      </div>
 
-        <div class="telemetry-panel">
+      <div id="gpsEspStatus" class="status-badge status-bad">
+        <i class="fa-solid fa-satellite-dish"></i> ESP32 GPS: OFFLINE
+      </div>
 
-          <div class="data-card">
-            <i class="fa-solid fa-location-crosshairs data-icon"></i>
-            <span class="data-label">Vĩ độ (LAT)</span>
-            <span class="data-value" id="lat">--.------</span>
+      <div id="rxEspStatus" class="status-badge status-bad">
+        <i class="fa-solid fa-microchip"></i> ESP32 NHẬN: OFFLINE
+      </div>
+
+      <div id="linkStatus" class="status-badge status-warn">
+        <i class="fa-solid fa-link"></i> LIÊN KẾT: CHƯA CÓ DỮ LIỆU
+      </div>
+    </div>
+  </header>
+
+  <main class="dashboard-shell">
+    <div class="page-heading">
+      <div>
+        <div class="eyebrow">Flight monitoring / control room</div>
+        <h1>Giám sát hành trình</h1>
+        <p>Theo dõi vị trí GPS và trạng thái truyền dữ liệu theo thời gian thực.</p>
+      </div>
+
+      <div class="live-indicator">
+        <span class="live-dot"></span> REAL-TIME DASHBOARD
+      </div>
+    </div>
+
+    <section class="primary-grid">
+
+      <!-- BẢN ĐỒ GPS: KHỐI LỚN NHẤT -->
+      <article class="panel map-panel">
+        <div class="panel-head">
+          <div>
+            <div class="eyebrow">Live position</div>
+            <h2 class="panel-title">Bản đồ định vị GPS</h2>
+            <div class="panel-caption">
+              ESP32 #1 + ATGM336H → UDP → ESP32 #2 → MQTT
+            </div>
           </div>
 
-          <div class="data-card">
-            <i class="fa-solid fa-map-location-dot data-icon"></i>
-            <span class="data-label">Kinh độ (LON)</span>
-            <span class="data-value" id="lon">--.------</span>
+          <div class="map-tag">
+            <span class="live-dot"></span> GPS TRACK
           </div>
-
-          <div class="data-card">
-            <i class="fa-solid fa-mountain-sun data-icon"></i>
-            <span class="data-label">Độ cao</span>
-            <span class="data-value highlight">
-              <span id="alt">--.-</span>
-              <span class="data-unit"> m</span>
-            </span>
-          </div>
-
-          <div class="data-card">
-            <i class="fa-solid fa-satellite data-icon"></i>
-            <span class="data-label">Vệ tinh</span>
-            <span class="data-value">
-              <span id="sat">--</span>
-            </span>
-          </div>
-
-          <div class="data-card">
-            <i class="fa-solid fa-gauge-high data-icon"></i>
-            <span class="data-label">Tốc độ</span>
-            <span class="data-value">
-              <span id="speed">--.-</span>
-              <span class="data-unit"> km/h</span>
-            </span>
-          </div>
-
-          <div class="data-card">
-            <i class="fa-solid fa-compass data-icon"></i>
-            <span class="data-label">Hướng / HDOP</span>
-            <span class="data-value">
-              <span id="course">---</span>
-              <span class="data-unit">° / </span>
-              <span id="hdop">--</span>
-            </span>
-          </div>
-
         </div>
 
-        <div class="bottom-meta">
+        <div class="map-area">
+          <div id="map"></div>
+        </div>
 
-          <div class="meta-left">
-
-            <span class="meta-item">
-              <i class="fa-solid fa-crosshairs"></i>
-              GPS FIX:
-              <strong id="fixText">CHƯA CÓ DỮ LIỆU</strong>
-            </span>
-
-            <span class="meta-item">
+        <div class="map-footer">
+          <div class="map-footer-group">
+            <span class="map-meta">
               <i class="fa-regular fa-clock"></i>
-              Cập nhật:
-              <strong id="lastUpdate">--</strong>
+              Cập nhật: <strong id="lastUpdate">--</strong>
             </span>
 
-            <span class="meta-item">
-              <i class="fa-solid fa-arrow-right-arrow-left"></i>
-              ESP32 #2 nhận:
-              <strong id="rxText">CHƯA XÁC NHẬN</strong>
+            <span class="map-meta">
+              <i class="fa-solid fa-crosshairs"></i>
+              Trạng thái: <strong id="fixText">CHƯA CÓ DỮ LIỆU</strong>
             </span>
-
           </div>
 
-          <div class="meta-right">
+          <button id="clearPathBtn" class="action-btn" type="button">
+            <i class="fa-solid fa-eraser"></i> XÓA ĐƯỜNG BAY
+          </button>
+        </div>
+      </article>
 
-            <span id="gpsTime" class="meta-item">
-              <i class="fa-solid fa-clock"></i>
-              GPS UTC: --
-            </span>
+      <!-- CÁC KHỐI GPS / LIÊN KẾT -->
+      <aside class="side-column">
 
-            <button id="clearPathBtn" class="action-btn" type="button">
-              <i class="fa-solid fa-eraser"></i>
-              XÓA ĐƯỜNG ĐI
+        <section class="panel side-panel">
+          <div class="side-panel-head">
+            <h2><i class="fa-solid fa-location-dot"></i> Tọa độ hiện tại</h2>
+            <span class="panel-caption">GPS position</span>
+          </div>
+
+          <div class="coordinate-grid">
+            <button
+              class="metric-card metric-card--coordinate"
+              type="button"
+              data-popup-title="Vĩ độ GPS (Latitude)"
+              data-popup-description="Vĩ độ địa lý do module ATGM336H cung cấp. Giá trị được hiển thị theo độ thập phân (decimal degrees)."
+            >
+              <div class="metric-top">
+                <span class="metric-label">LATITUDE</span>
+                <span class="metric-icon"><i class="fa-solid fa-arrow-up"></i></span>
+              </div>
+              <span class="metric-value" id="lat">--.------</span>
+              <span class="metric-note">Vĩ độ · độ thập phân</span>
+              <span class="metric-hint">NHẤN ĐỂ XEM</span>
             </button>
 
+            <button
+              class="metric-card metric-card--coordinate"
+              type="button"
+              data-popup-title="Kinh độ GPS (Longitude)"
+              data-popup-description="Kinh độ địa lý do module ATGM336H cung cấp. Giá trị được hiển thị theo độ thập phân (decimal degrees)."
+              style="--card-glow: rgba(34,211,238,.17)"
+            >
+              <div class="metric-top">
+                <span class="metric-label">LONGITUDE</span>
+                <span class="metric-icon"><i class="fa-solid fa-arrow-right"></i></span>
+              </div>
+              <span class="metric-value" id="lon">--.------</span>
+              <span class="metric-note">Kinh độ · độ thập phân</span>
+              <span class="metric-hint">NHẤN ĐỂ XEM</span>
+            </button>
           </div>
 
+          <div class="fix-status">
+            <span><i class="fa-solid fa-satellite"></i> GPS FIX</span>
+            <strong id="fixTextSide">ĐANG CHỜ</strong>
+          </div>
+        </section>
+
+        <section class="panel side-panel">
+          <div class="side-panel-head">
+            <h2><i class="fa-solid fa-satellite-dish"></i> Chất lượng GPS</h2>
+            <span class="panel-caption">Signal data</span>
+          </div>
+
+          <div class="coordinate-grid">
+            <button
+              class="metric-card metric-card--small"
+              type="button"
+              data-popup-title="Số vệ tinh GPS"
+              data-popup-description="Số vệ tinh mà bộ thu GPS đang theo dõi hoặc sử dụng để xác định vị trí."
+            >
+              <div class="metric-top">
+                <span class="metric-label">VỆ TINH</span>
+                <span class="metric-icon"><i class="fa-solid fa-satellite"></i></span>
+              </div>
+              <span class="metric-value" id="sat">--</span>
+              <span class="metric-note">Satellites</span>
+              <span class="metric-hint">CHI TIẾT</span>
+            </button>
+
+            <button
+              class="metric-card metric-card--small"
+              type="button"
+              data-popup-title="HDOP – độ chính xác ngang"
+              data-popup-description="HDOP là chỉ số suy giảm độ chính xác theo phương ngang. Giá trị càng thấp thường thể hiện hình học vệ tinh càng thuận lợi; đây không phải sai số mét trực tiếp."
+              style="--card-glow: rgba(74,222,128,.13)"
+            >
+              <div class="metric-top">
+                <span class="metric-label">HDOP</span>
+                <span class="metric-icon"><i class="fa-solid fa-bullseye"></i></span>
+              </div>
+              <span class="metric-value" id="hdop">--</span>
+              <span class="metric-note">Horizontal dilution</span>
+              <span class="metric-hint">CHI TIẾT</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="panel side-panel system-panel">
+          <div class="side-panel-head">
+            <h2><i class="fa-solid fa-tower-broadcast"></i> Truyền dữ liệu</h2>
+            <span class="panel-caption">Gateway status</span>
+          </div>
+
+          <div class="system-list">
+            <div class="system-row">
+              <span><i class="fa-solid fa-check-double"></i> ESP32 #2 xác nhận</span>
+              <strong id="rxText">CHƯA XÁC NHẬN</strong>
+            </div>
+
+            <div class="system-row">
+              <span><i class="fa-solid fa-box"></i> Gói telemetry</span>
+              <strong id="gpsTime">--</strong>
+            </div>
+
+            <div class="system-row">
+              <span><i class="fa-solid fa-route"></i> Kiểu truyền</span>
+              <strong>UDP → MQTT</strong>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </section>
+
+    <!-- CÁC KHỐI THÔNG SỐ RIÊNG BIỆT -->
+    <div class="section-heading">
+      <div>
+        <div class="eyebrow">Telemetry data</div>
+        <h2>Thông số chuyến bay</h2>
+      </div>
+      <p>Nhấn vào từng thẻ để mở cửa sổ thông tin chi tiết.</p>
+    </div>
+
+    <section class="metrics-grid">
+
+      <button
+        class="metric-card"
+        type="button"
+        data-popup-title="Độ cao GPS"
+        data-popup-description="Độ cao do bộ thu GPS cung cấp. Độ cao GPS có thể dao động theo điều kiện thu vệ tinh và không tương đương hoàn toàn với độ cao khí áp."
+      >
+        <div class="metric-top">
+          <span class="metric-label">ALTITUDE</span>
+          <span class="metric-icon"><i class="fa-solid fa-mountain-sun"></i></span>
         </div>
+        <span class="metric-value">
+          <span id="alt">--.-</span><span class="metric-unit">m</span>
+        </span>
+        <span class="metric-note">Độ cao GPS</span>
+        <span class="metric-hint">NHẤN ĐỂ XEM CHI TIẾT</span>
+      </button>
+
+      <button
+        class="metric-card"
+        type="button"
+        data-popup-title="Tốc độ di chuyển"
+        data-popup-description="Tốc độ mặt đất được nhận từ dữ liệu GPS. Website hiển thị theo đơn vị km/h."
+      >
+        <div class="metric-top">
+          <span class="metric-label">GROUND SPEED</span>
+          <span class="metric-icon"><i class="fa-solid fa-gauge-high"></i></span>
+        </div>
+        <span class="metric-value">
+          <span id="speed">--.-</span><span class="metric-unit">km/h</span>
+        </span>
+        <span class="metric-note">Tốc độ mặt đất</span>
+        <span class="metric-hint">NHẤN ĐỂ XEM CHI TIẾT</span>
+      </button>
+
+      <button
+        class="metric-card"
+        type="button"
+        data-popup-title="Hướng di chuyển"
+        data-popup-description="Course over ground là hướng chuyển động theo mặt đất do GPS cung cấp, tính theo độ từ hướng Bắc và tăng theo chiều kim đồng hồ."
+      >
+        <div class="metric-top">
+          <span class="metric-label">COURSE</span>
+          <span class="metric-icon"><i class="fa-solid fa-compass"></i></span>
+        </div>
+        <span class="metric-value">
+          <span id="course">---</span><span class="metric-unit">°</span>
+        </span>
+        <span class="metric-note">Hướng chuyển động</span>
+        <span class="metric-hint">NHẤN ĐỂ XEM CHI TIẾT</span>
+      </button>
+
+      <button
+        class="metric-card"
+        type="button"
+        data-popup-title="Điện áp pin UAV"
+        data-popup-description="Điện áp pin được firmware ESP32 gửi lên. Hãy hiệu chuẩn hệ số chia áp và đối chiếu với đồng hồ đo để bảo đảm giá trị hiển thị chính xác."
+        style="--card-glow: rgba(74,222,128,.16)"
+      >
+        <div class="metric-top">
+          <span class="metric-label">BATTERY</span>
+          <span class="metric-icon"><i class="fa-solid fa-battery-half"></i></span>
+        </div>
+        <span class="metric-value">
+          <span id="bat">--.--</span><span class="metric-unit">V</span>
+        </span>
+        <span class="metric-note">Điện áp pin UAV</span>
+        <span class="metric-hint">NHẤN ĐỂ XEM CHI TIẾT</span>
+      </button>
+
+      <button
+        class="metric-card"
+        type="button"
+        data-popup-title="Góc Roll"
+        data-popup-description="Roll là góc nghiêng lắc ngang của UAV, được tính hoặc gửi từ dữ liệu cảm biến IMU."
+      >
+        <div class="metric-top">
+          <span class="metric-label">ROLL</span>
+          <span class="metric-icon"><i class="fa-solid fa-rotate"></i></span>
+        </div>
+        <span class="metric-value">
+          <span id="roll">--</span><span class="metric-unit">°</span>
+        </span>
+        <span class="metric-note">Góc nghiêng ngang</span>
+        <span class="metric-hint">NHẤN ĐỂ XEM CHI TIẾT</span>
+      </button>
+
+      <button
+        class="metric-card"
+        type="button"
+        data-popup-title="Góc Pitch"
+        data-popup-description="Pitch là góc chúi hoặc ngẩng của UAV, được tính hoặc gửi từ dữ liệu cảm biến IMU."
+      >
+        <div class="metric-top">
+          <span class="metric-label">PITCH</span>
+          <span class="metric-icon"><i class="fa-solid fa-arrow-up-long"></i></span>
+        </div>
+        <span class="metric-value">
+          <span id="pitch">--</span><span class="metric-unit">°</span>
+        </span>
+        <span class="metric-note">Góc chúi / ngẩng</span>
+        <span class="metric-hint">NHẤN ĐỂ XEM CHI TIẾT</span>
+      </button>
+
+    </section>
+  </main>
+
+  <!-- POPUP CHI TIẾT CHO TỪNG KHỐI DỮ LIỆU -->
+  <div id="metricModal" class="modal-backdrop" aria-hidden="true">
+    <section
+      class="detail-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modalTitle"
+    >
+      <div class="modal-head">
+        <h2 id="modalTitle">Thông tin dữ liệu</h2>
+        <button
+          id="modalClose"
+          class="modal-close"
+          type="button"
+          aria-label="Đóng cửa sổ"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="modal-value-wrap">
+        <div class="modal-value-label">Giá trị hiện tại</div>
+        <div id="modalValue" class="modal-value">--</div>
+      </div>
+
+      <p id="modalDescription" class="modal-description"></p>
+
+      <div class="modal-foot">
+        <i class="fa-solid fa-circle-info"></i>
+        Dữ liệu cập nhật trực tiếp từ MQTT khi thiết bị đang kết nối.
       </div>
     </section>
   </div>
@@ -537,32 +1210,19 @@
     // ============================================================
 
     const CONFIG = {
-
       brokerUrl: 'wss://broker.emqx.io:8084/mqtt',
 
       topics: {
-
         gps: 'uav/telemetry/du_an_gps_cua_toi_999',
-
-        gpsStatus:
-          'uav/status/du_an_gps_cua_toi_999/esp32_gps',
-
-        receiverStatus:
-          'uav/status/du_an_gps_cua_toi_999/esp32_receiver',
-
-        receiverAck:
-          'uav/ack/du_an_gps_cua_toi_999/esp32_receiver'
-
+        gpsStatus: 'uav/status/du_an_gps_cua_toi_999/esp32_gps',
+        receiverStatus: 'uav/status/du_an_gps_cua_toi_999/esp32_receiver',
+        receiverAck: 'uav/ack/du_an_gps_cua_toi_999/esp32_receiver'
       },
 
       gpsTimeoutMs: 12000,
-
       deviceTimeoutMs: 15000,
-
       ackTimeoutMs: 12000,
-
       maxPathPoints: 1000
-
     };
 
 
@@ -576,48 +1236,29 @@
       zoomControl: true
     }).setView(DEFAULT_POSITION, 15);
 
-
-    L.tileLayer(
-      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      {
-        attribution: '&copy; OpenStreetMap contributors',
-        maxZoom: 19
-      }
-    ).addTo(map);
-
-
-    const uavIcon = L.divIcon({
-
-      html: '<i class="fa-solid fa-plane-up"></i>',
-
-      iconSize: [30, 30],
-
-      iconAnchor: [15, 15],
-
-      className: 'uav-marker'
-
-    });
-
-
-    const marker = L.marker(
-      DEFAULT_POSITION,
-      { icon: uavIcon }
-    ).addTo(map);
-
-
-    const pathLine = L.polyline([], {
-
-      color: '#4ade80',
-
-      weight: 4,
-
-      opacity: 0.85
-
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19
     }).addTo(map);
 
+    const uavIcon = L.divIcon({
+      html: '<i class="fa-solid fa-plane-up"></i>',
+      iconSize: [30, 30],
+      iconAnchor: [15, 15],
+      className: 'uav-marker'
+    });
+
+    const marker = L.marker(DEFAULT_POSITION, {
+      icon: uavIcon
+    }).addTo(map);
+
+    const pathLine = L.polyline([], {
+      color: '#4ade80',
+      weight: 4,
+      opacity: 0.85
+    }).addTo(map);
 
     let firstFix = true;
-
     let lastPosition = null;
 
 
@@ -627,40 +1268,24 @@
 
     const el = (id) => document.getElementById(id);
 
-
     const lastSeen = {
-
       gps: 0,
-
       receiver: 0,
-
       ack: 0
-
     };
 
-
     let lastGpsPayload = null;
-
     let lastGpsSeq = null;
-
     let lastAckSeq = null;
-
     let receiverHasGps = false;
-
     let gpsFixValid = false;
 
-
     function setBadge(node, mode, html) {
-
       node.className = `status-badge ${mode}`;
-
       node.innerHTML = html;
-
     }
 
-
     function toBoolean(value, fallback = false) {
-
       if (value === true || value === 1) return true;
 
       if (
@@ -673,39 +1298,32 @@
 
       const normalized = String(value).trim().toLowerCase();
 
-      if (
-        [
-          'true',
-          '1',
-          'yes',
-          'on',
-          'online',
-          'valid',
-          'fix',
-          'a'
-        ].includes(normalized)
-      ) return true;
+      if ([
+        'true',
+        '1',
+        'yes',
+        'on',
+        'online',
+        'valid',
+        'fix',
+        'a'
+      ].includes(normalized)) return true;
 
-      if (
-        [
-          'false',
-          '0',
-          'no',
-          'off',
-          'offline',
-          'invalid',
-          'no_fix',
-          'v'
-        ].includes(normalized)
-      ) return false;
+      if ([
+        'false',
+        '0',
+        'no',
+        'off',
+        'offline',
+        'invalid',
+        'no_fix',
+        'v'
+      ].includes(normalized)) return false;
 
       return fallback;
-
     }
 
-
     function normalizeSeq(value) {
-
       if (
         value === undefined ||
         value === null ||
@@ -717,53 +1335,42 @@
       return Number.isFinite(n)
         ? String(n)
         : String(value).trim();
-
     }
-
 
     function isFresh(timestamp, timeoutMs) {
-
       return timestamp > 0 &&
         (Date.now() - timestamp) <= timeoutMs;
-
     }
 
-
     function updateConnectionUI() {
-
       const gpsOnline = isFresh(
         lastSeen.gps,
         CONFIG.gpsTimeoutMs
       );
-
 
       const receiverOnline = isFresh(
         lastSeen.receiver,
         CONFIG.deviceTimeoutMs
       );
 
-
       const ackFresh = isFresh(
         lastSeen.ack,
         CONFIG.ackTimeoutMs
       );
 
-
-      // Nếu có seq ở cả GPS và ACK thì phải khớp nhau.
-      // Nếu firmware chưa gửi seq, vẫn cho phép kiểu ACK cũ.
+      // Khi có seq ở cả GPS và ACK, chỉ xác nhận liên kết nếu chúng trùng nhau.
+      // Nếu firmware chưa gửi seq, vẫn hỗ trợ kiểu ACK cũ bằng gps_received.
 
       const seqMatches =
         lastGpsSeq === null || lastAckSeq === null
           ? true
           : lastGpsSeq === lastAckSeq;
 
-
       const linkOnline =
         receiverOnline &&
         receiverHasGps &&
         ackFresh &&
         seqMatches;
-
 
       // ESP32 GPS STATUS
 
@@ -775,7 +1382,6 @@
           : '<i class="fa-solid fa-triangle-exclamation"></i> ESP32 GPS: OFFLINE'
       );
 
-
       // ESP32 RECEIVER STATUS
 
       setBadge(
@@ -786,15 +1392,12 @@
           : '<i class="fa-solid fa-triangle-exclamation"></i> ESP32 NHẬN: OFFLINE'
       );
 
-
       // DATA LINK STATUS
 
       if (linkOnline) {
-
-        const seqLabel =
-          lastAckSeq !== null
-            ? ` #${lastAckSeq}`
-            : '';
+        const seqLabel = lastAckSeq !== null
+          ? ` #${lastAckSeq}`
+          : '';
 
         setBadge(
           el('linkStatus'),
@@ -808,7 +1411,6 @@
             : 'ĐÃ NHẬN GPS';
 
       } else {
-
         let reason = 'CHƯA XÁC NHẬN';
 
         if (!receiverOnline) {
@@ -826,40 +1428,26 @@
         );
 
         el('rxText').textContent = reason;
-
       }
-
 
       // GPS FIX STATUS
 
       if (!lastGpsPayload) {
-
-        el('fixText').textContent =
-          'CHƯA CÓ DỮ LIỆU';
-
+        el('fixText').textContent = 'CHƯA CÓ DỮ LIỆU';
         el('fixText').style.color = '#fbbf24';
 
       } else if (!gpsOnline) {
-
-        el('fixText').textContent =
-          'MẤT DỮ LIỆU GPS';
-
+        el('fixText').textContent = 'MẤT DỮ LIỆU GPS';
         el('fixText').style.color = '#f87171';
 
       } else if (gpsFixValid) {
-
         el('fixText').textContent = 'CÓ FIX';
-
         el('fixText').style.color = '#4ade80';
 
       } else {
-
         el('fixText').textContent = 'CHƯA CÓ FIX';
-
         el('fixText').style.color = '#fbbf24';
-
       }
-
     }
 
 
@@ -868,28 +1456,20 @@
     // ============================================================
 
     function pick(data, keys) {
-
       for (const key of keys) {
-
         if (
           data[key] !== undefined &&
           data[key] !== null &&
           data[key] !== ''
         ) {
-
           return data[key];
-
         }
-
       }
 
       return undefined;
-
     }
 
-
     function numberValue(value, fallback = NaN) {
-
       if (
         value === undefined ||
         value === null ||
@@ -899,64 +1479,49 @@
       const n = Number(value);
 
       return Number.isFinite(n) ? n : fallback;
-
     }
 
-
     function displayNumber(id, value, digits) {
-
       el(id).textContent =
         Number.isFinite(value)
           ? value.toFixed(digits)
           : '--';
-
     }
 
-
     function parseFix(value, lat, lon) {
-
       if (value !== undefined) {
         return toBoolean(value, false);
       }
 
       // Nếu firmware không gửi trường fix,
-      // kiểm tra tọa độ GPS hợp lệ.
+      // kiểm tra tọa độ GPS hợp lệ thay vì bắt buộc >=4 vệ tinh.
 
       return Number.isFinite(lat) &&
         Number.isFinite(lon) &&
         Math.abs(lat) <= 90 &&
         Math.abs(lon) <= 180 &&
         !(lat === 0 && lon === 0);
-
     }
 
-
     function formatGpsTime(value, dateValue) {
-
       if (
         value === undefined ||
         value === null ||
         value === ''
       ) return '--';
 
-
       const raw = String(value).trim();
 
-
-      // NMEA UTC HHMMSS hoặc HHMMSS.sss.
-      // Ví dụ: 112345.00
+      // NMEA UTC dạng HHMMSS hoặc HHMMSS.sss.
+      // Đây là giờ trong ngày, KHÔNG phải Unix timestamp.
 
       const nmeaTime = raw.match(
         /^(\d{2})(\d{2})(\d{2})(?:\.(\d+))?$/
       );
 
-
       if (nmeaTime) {
-
         const hh = nmeaTime[1];
-
         const mm = nmeaTime[2];
-
         const ss = nmeaTime[3];
 
         const fraction = nmeaTime[4]
@@ -966,43 +1531,34 @@
         const timeText =
           `${hh}:${mm}:${ss}${fraction} UTC`;
 
-
-        // Ngày NMEA dạng DDMMYY.
+        // Ngày NMEA tùy chọn dạng DDMMYY.
 
         if (
           dateValue !== undefined &&
           dateValue !== null
         ) {
-
           const dateMatch = String(dateValue)
             .trim()
             .match(/^(\d{2})(\d{2})(\d{2})$/);
 
           if (dateMatch) {
-
-            const year =
-              Number(dateMatch[3]) >= 80
-                ? 1900 + Number(dateMatch[3])
-                : 2000 + Number(dateMatch[3]);
+            const year = Number(dateMatch[3]) >= 80
+              ? 1900 + Number(dateMatch[3])
+              : 2000 + Number(dateMatch[3]);
 
             return `${dateMatch[1]}/${dateMatch[2]}/${year} ${timeText}`;
-
           }
-
         }
 
         return timeText;
-
       }
 
-
-      // Unix timestamp giây hoặc mili-giây.
+      // Unix timestamp (giây hoặc mili-giây).
 
       if (
         /^\d{10}(?:\.\d+)?$/.test(raw) ||
         /^\d{13}$/.test(raw)
       ) {
-
         const n = Number(raw);
 
         const date = new Date(
@@ -1012,9 +1568,7 @@
         return Number.isNaN(date.getTime())
           ? raw
           : `${date.toISOString().replace('T', ' ').replace('Z', ' UTC')}`;
-
       }
-
 
       // ISO date-time hoặc chuỗi ngày giờ đầy đủ.
 
@@ -1028,95 +1582,62 @@
           raw.includes(':')
         )
       ) {
-
         return `${date.toISOString().replace('T', ' ').replace('Z', ' UTC')}`;
-
       }
 
       return raw;
-
     }
 
 
     // ============================================================
     // 5. PROCESS GPS TELEMETRY FROM ESP32 #1 + ATGM336H
+    // Hỗ trợ: lat/lon/alt/sat/speed/course/hdop/fix/utc/seq.
     // ============================================================
 
     function updateGpsData(payload) {
-
       const data =
         payload && typeof payload.gps === 'object'
           ? payload.gps
           : payload;
 
-
       const lat = numberValue(
         pick(data, ['lat', 'latitude'])
       );
-
 
       const lon = numberValue(
         pick(data, ['lon', 'lng', 'longitude'])
       );
 
-
       const alt = numberValue(
-        pick(data, [
-          'alt',
-          'altitude',
-          'altitude_m',
-          'alt_m'
-        ])
+        pick(data, ['alt', 'altitude', 'altitude_m', 'alt_m'])
       );
 
-
       const sats = numberValue(
-        pick(data, [
-          'sat',
-          'sats',
-          'satellites',
-          'satellites_in_view'
-        ]),
+        pick(data, ['sat', 'sats', 'satellites', 'satellites_in_view']),
         NaN
       );
 
-
       let speed = numberValue(
-        pick(data, [
-          'speed_kmh',
-          'speed_kph',
-          'speedKmh',
-          'speedKph'
-        ])
+        pick(data, ['speed_kmh', 'speed_kph', 'speedKmh', 'speedKph'])
       );
-
 
       const speedMps = numberValue(
-        pick(data, [
-          'speed_mps',
-          'speedMps'
-        ])
+        pick(data, ['speed_mps', 'speedMps'])
       );
-
 
       const genericSpeed = numberValue(
         pick(data, ['speed'])
       );
 
-
       const speedUnit = String(
         pick(data, ['speed_unit', 'speedUnit']) || 'kmh'
       ).toLowerCase();
 
-
       if (!Number.isFinite(speed)) {
-
         if (Number.isFinite(speedMps)) {
-
           speed = speedMps * 3.6;
 
         } else if (Number.isFinite(genericSpeed)) {
-
           speed = (
             speedUnit === 'm/s' ||
             speedUnit === 'mps' ||
@@ -1124,11 +1645,8 @@
           )
             ? genericSpeed * 3.6
             : genericSpeed;
-
         }
-
       }
-
 
       const course = numberValue(
         pick(data, [
@@ -1140,30 +1658,30 @@
         ])
       );
 
-
       const hdop = numberValue(
         pick(data, ['hdop', 'HDOP'])
       );
 
+      const battery = numberValue(
+        pick(data, ['bat', 'battery_v', 'batteryVoltage'])
+      );
+
+      const roll = numberValue(
+        pick(data, ['roll', 'roll_deg'])
+      );
+
+      const pitch = numberValue(
+        pick(data, ['pitch', 'pitch_deg'])
+      );
 
       gpsFixValid = parseFix(
-        pick(data, [
-          'fix',
-          'gpsFix',
-          'valid',
-          'gps_valid'
-        ]),
+        pick(data, ['fix', 'gpsFix', 'valid', 'gps_valid']),
         lat,
         lon
       );
 
-
-      // UPDATE DISPLAY
-
       displayNumber('lat', lat, 6);
-
       displayNumber('lon', lon, 6);
-
       displayNumber('alt', alt, 1);
 
       el('sat').textContent =
@@ -1172,13 +1690,11 @@
           : '--';
 
       displayNumber('speed', speed, 1);
-
       displayNumber('course', course, 0);
-
       displayNumber('hdop', hdop, 1);
-
-
-      // GPS COORDINATES VALIDATION
+      displayNumber('bat', battery, 2);
+      displayNumber('roll', roll, 1);
+      displayNumber('pitch', pitch, 1);
 
       const validCoordinates =
         Number.isFinite(lat) &&
@@ -1187,108 +1703,50 @@
         Math.abs(lon) <= 180 &&
         !(lat === 0 && lon === 0);
 
-
-      // UPDATE MAP
-
       if (gpsFixValid && validCoordinates) {
-
         const position = [lat, lon];
 
         marker.setLatLng(position);
-
 
         if (
           !lastPosition ||
           lastPosition[0] !== lat ||
           lastPosition[1] !== lon
         ) {
-
           pathLine.addLatLng(position);
-
           lastPosition = position;
-
         }
-
-
-        // Giới hạn tối đa 1000 điểm đường đi.
 
         const points = pathLine.getLatLngs();
 
         if (points.length > CONFIG.maxPathPoints) {
-
           pathLine.setLatLngs(
-            points.slice(
-              points.length - CONFIG.maxPathPoints
-            )
+            points.slice(points.length - CONFIG.maxPathPoints)
           );
-
         }
-
 
         if (firstFix) {
-
           map.setView(position, 17);
-
           firstFix = false;
-
         }
-
       }
-
-
-      // GPS UTC TIME
-
-      const timeValue = pick(
-        data,
-        ['utc', 'gpsTime', 'time', 'timestamp']
-      );
-
-
-      const dateValue = pick(
-        data,
-        ['date', 'gpsDate']
-      );
-
-
-      if (timeValue !== undefined) {
-
-        el('gpsTime').textContent =
-          `GPS UTC: ${formatGpsTime(timeValue, dateValue)}`;
-
-      }
-
 
       el('lastUpdate').textContent =
         new Date().toLocaleTimeString('vi-VN');
 
-
       lastGpsPayload = payload;
 
-
-      // SEQUENCE NUMBER
-
       const seq =
-        pick(data, [
-          'seq',
-          'sequence',
-          'packet_id'
-        ]) ??
-        pick(payload, [
-          'seq',
-          'sequence',
-          'packet_id'
-        ]);
-
+        pick(data, ['seq', 'sequence', 'packet_id']) ??
+        pick(payload, ['seq', 'sequence', 'packet_id']);
 
       if (seq !== undefined) {
-
         lastGpsSeq = normalizeSeq(seq);
-
+        el('gpsTime').textContent =
+          `GÓI TELEMETRY: #${lastGpsSeq}`;
       }
 
-
       updateConnectionUI();
-
     }
 
 
@@ -1299,115 +1757,69 @@
     const cloudBadge = el('cloudStatus');
 
     const clientId =
-      'uav_web_' +
-      Math.random().toString(16).slice(2, 10);
+      'uav_web_' + Math.random().toString(16).slice(2, 10);
 
-
-    const client = mqtt.connect(
-      CONFIG.brokerUrl,
-      {
-
-        clientId,
-
-        clean: true,
-
-        connectTimeout: 10000,
-
-        reconnectPeriod: 3000,
-
-        keepalive: 30
-
-      }
-    );
-
-
-    // MQTT CONNECT
+    const client = mqtt.connect(CONFIG.brokerUrl, {
+      clientId,
+      clean: true,
+      connectTimeout: 10000,
+      reconnectPeriod: 3000,
+      keepalive: 30
+    });
 
     client.on('connect', () => {
-
       setBadge(
         cloudBadge,
         'status-ok',
         '<i class="fa-solid fa-server"></i> MQTT: ĐÃ KẾT NỐI'
       );
 
-
       const subscriptions = [
-
         CONFIG.topics.gps,
-
         CONFIG.topics.gpsStatus,
-
         CONFIG.topics.receiverStatus,
-
         CONFIG.topics.receiverAck
-
       ];
-
 
       client.subscribe(
         subscriptions,
         { qos: 0 },
         (error) => {
-
           if (error) {
-
             console.error(
               'Không đăng ký được MQTT topic:',
               error
             );
-
           }
-
         }
       );
-
     });
 
-
-    // MQTT RECONNECT
-
     client.on('reconnect', () => {
-
       setBadge(
         cloudBadge,
         'status-warn',
         '<i class="fa-solid fa-rotate"></i> MQTT: ĐANG KẾT NỐI LẠI'
       );
-
     });
-
-
-    // MQTT CLOSE
 
     client.on('close', () => {
-
       setBadge(
         cloudBadge,
         'status-bad',
         '<i class="fa-solid fa-server"></i> MQTT: OFFLINE'
       );
-
     });
-
-
-    // MQTT OFFLINE
 
     client.on('offline', () => {
-
       setBadge(
         cloudBadge,
         'status-bad',
         '<i class="fa-solid fa-server"></i> MQTT: OFFLINE'
       );
-
     });
 
-
-    // MQTT ERROR
-
     client.on('error', (error) => {
-
       console.error('Lỗi MQTT:', error);
 
       setBadge(
@@ -1415,283 +1827,243 @@
         'status-bad',
         '<i class="fa-solid fa-triangle-exclamation"></i> MQTT: LỖI KẾT NỐI'
       );
-
     });
 
 
     // ============================================================
     // 7. RECEIVE MESSAGES FROM ESP32 #1 / ESP32 #2
+    // packet.retain được dùng để không coi retained message cũ là thiết bị đang online.
     // ============================================================
 
-    client.on(
-      'message',
-      (topic, message, packet) => {
+    client.on('message', (topic, message, packet) => {
+      let data;
 
-        let data;
+      try {
+        data = JSON.parse(message.toString());
 
-        try {
-
-          data = JSON.parse(message.toString());
-
-        } catch (error) {
-
-          console.error(
-            'JSON không hợp lệ:',
-            topic,
-            message.toString()
-          );
-
-          return;
-
-        }
-
-
-        if (!data || typeof data !== 'object') {
-
-          console.warn(
-            'Payload MQTT không phải JSON object:',
-            topic
-          );
-
-          return;
-
-        }
-
-
-        const retained = Boolean(
-          packet && packet.retain
+      } catch (error) {
+        console.error(
+          'JSON không hợp lệ:',
+          topic,
+          message.toString()
         );
+        return;
+      }
 
-        const now = Date.now();
+      if (!data || typeof data !== 'object') {
+        console.warn(
+          'Payload MQTT không phải JSON object:',
+          topic
+        );
+        return;
+      }
 
+      const retained = Boolean(packet && packet.retain);
+      const now = Date.now();
 
-        // ----------------------------------
-        // ESP32 #1: GPS TELEMETRY
-        // ----------------------------------
+      // ESP32 #1: GPS telemetry
 
-        if (topic === CONFIG.topics.gps) {
+      if (topic === CONFIG.topics.gps) {
+        if (!retained) lastSeen.gps = now;
+        updateGpsData(data);
+        return;
+      }
 
-          if (!retained) {
-            lastSeen.gps = now;
-          }
+      // ESP32 #1: heartbeat/status
 
-          updateGpsData(data);
+      if (topic === CONFIG.topics.gpsStatus) {
+        const online = toBoolean(data.online, true);
 
-          return;
-
+        if (!retained) {
+          lastSeen.gps = online ? now : 0;
+        } else if (!online) {
+          lastSeen.gps = 0;
         }
 
+        updateConnectionUI();
+        return;
+      }
 
-        // ----------------------------------
-        // ESP32 #1: HEARTBEAT / STATUS
-        // ----------------------------------
+      // ESP32 #2: heartbeat/status
 
-        if (topic === CONFIG.topics.gpsStatus) {
+      if (topic === CONFIG.topics.receiverStatus) {
+        const online = toBoolean(data.online, true);
 
-          const online = toBoolean(
-            data.online,
-            true
-          );
-
-
-          if (!retained) {
-
-            lastSeen.gps = online ? now : 0;
-
-          } else if (!online) {
-
-            lastSeen.gps = 0;
-
-          }
-
-
-          updateConnectionUI();
-
-          return;
-
+        if (!retained) {
+          lastSeen.receiver = online ? now : 0;
+        } else if (!online) {
+          lastSeen.receiver = 0;
         }
 
-
-        // ----------------------------------
-        // ESP32 #2: HEARTBEAT / STATUS
-        // ----------------------------------
-
-        if (topic === CONFIG.topics.receiverStatus) {
-
-          const online = toBoolean(
-            data.online,
-            true
-          );
-
-
-          if (!retained) {
-
-            lastSeen.receiver = online ? now : 0;
-
-          } else if (!online) {
-
-            lastSeen.receiver = 0;
-
-          }
-
-
-          if (data.gps_received !== undefined) {
-
-            receiverHasGps = toBoolean(
-              data.gps_received,
-              false
-            );
-
-
-            if (
-              !retained &&
-              receiverHasGps
-            ) {
-
-              lastSeen.ack = now;
-
-            }
-
-
-            if (!receiverHasGps) {
-
-              lastSeen.ack = 0;
-
-            }
-
-          }
-
-
-          const ackSeq = pick(
-            data,
-            [
-              'last_gps_seq',
-              'seq',
-              'last_seq'
-            ]
-          );
-
-
-          if (ackSeq !== undefined) {
-
-            lastAckSeq = normalizeSeq(ackSeq);
-
-
-            if (
-              !retained &&
-              receiverHasGps
-            ) {
-
-              lastSeen.ack = now;
-
-            }
-
-          }
-
-
-          updateConnectionUI();
-
-          return;
-
-        }
-
-
-        // ----------------------------------
-        // ESP32 #2: ACK FOR RECEIVED GPS
-        // ----------------------------------
-
-        if (topic === CONFIG.topics.receiverAck) {
-
-          if (!retained) {
-
-            lastSeen.receiver = now;
-
-            lastSeen.ack = now;
-
-          }
-
-
+        if (data.gps_received !== undefined) {
           receiverHasGps = toBoolean(
             data.gps_received,
-            data.seq !== undefined ||
-            data.last_gps_seq !== undefined
+            false
           );
 
-
-          const ackSeq = pick(
-            data,
-            [
-              'seq',
-              'last_gps_seq',
-              'last_seq'
-            ]
-          );
-
-
-          if (ackSeq !== undefined) {
-
-            lastAckSeq = normalizeSeq(ackSeq);
-
+          if (!retained && receiverHasGps) {
+            lastSeen.ack = now;
           }
-
 
           if (!receiverHasGps) {
-
             lastSeen.ack = 0;
-
           }
-
-
-          updateConnectionUI();
-
         }
 
-      }
-    );
+        const ackSeq = pick(
+          data,
+          ['last_gps_seq', 'seq', 'last_seq']
+        );
 
+        if (ackSeq !== undefined) {
+          lastAckSeq = normalizeSeq(ackSeq);
 
-    // ============================================================
-    // 8. UPDATE STATUS EVERY SECOND
-    // ============================================================
-
-    setInterval(
-      updateConnectionUI,
-      1000
-    );
-
-
-    // ============================================================
-    // 9. CLEAR FLIGHT PATH
-    // ============================================================
-
-    el('clearPathBtn').addEventListener(
-      'click',
-      () => {
-
-        pathLine.setLatLngs([]);
-
-        lastPosition = null;
-
-      }
-    );
-
-
-    // ============================================================
-    // 10. CLEANUP MQTT CONNECTION
-    // ============================================================
-
-    window.addEventListener(
-      'beforeunload',
-      () => {
-
-        if (client) {
-
-          client.end(true);
-
+          if (!retained && receiverHasGps) {
+            lastSeen.ack = now;
+          }
         }
 
+        updateConnectionUI();
+        return;
       }
-    );
+
+      // ESP32 #2: ACK for received GPS packet
+
+      if (topic === CONFIG.topics.receiverAck) {
+        if (!retained) {
+          lastSeen.receiver = now;
+          lastSeen.ack = now;
+        }
+
+        receiverHasGps = toBoolean(
+          data.gps_received,
+          data.seq !== undefined ||
+          data.last_gps_seq !== undefined
+        );
+
+        const ackSeq = pick(
+          data,
+          ['seq', 'last_gps_seq', 'last_seq']
+        );
+
+        if (ackSeq !== undefined) {
+          lastAckSeq = normalizeSeq(ackSeq);
+        }
+
+        if (!receiverHasGps) {
+          lastSeen.ack = 0;
+        }
+
+        updateConnectionUI();
+      }
+    });
+
+
+    // Update status badges even when no new MQTT messages arrive.
+
+    setInterval(updateConnectionUI, 1000);
+
+
+    // Clear recorded route.
+
+    el('clearPathBtn').addEventListener('click', () => {
+      pathLine.setLatLngs([]);
+      lastPosition = null;
+    });
+
+
+    // Disconnect cleanly when the page is closed.
+
+    window.addEventListener('beforeunload', () => {
+      if (client) client.end(true);
+    });
+
+
+    // ============================================================
+    // 8. INTERACTIVE DETAIL POPUPS FOR DATA CARDS
+    // ============================================================
+
+    const metricModal = el('metricModal');
+    const modalTitle = el('modalTitle');
+    const modalValue = el('modalValue');
+    const modalDescription = el('modalDescription');
+    const modalClose = el('modalClose');
+
+    let lastPopupTrigger = null;
+
+    function openMetricPopup(card) {
+      const valueNode = card.querySelector('.metric-value');
+
+      const valueText = valueNode
+        ? valueNode.innerText.replace(/\s+/g, ' ').trim()
+        : '--';
+
+      modalTitle.textContent =
+        card.dataset.popupTitle || 'Thông tin dữ liệu';
+
+      modalValue.textContent = valueText || '--';
+
+      modalDescription.textContent =
+        card.dataset.popupDescription ||
+        'Thông tin của thông số telemetry hiện tại.';
+
+      lastPopupTrigger = card;
+
+      metricModal.classList.add('is-open');
+      metricModal.setAttribute('aria-hidden', 'false');
+
+      modalClose.focus();
+    }
+
+    function closeMetricPopup() {
+      metricModal.classList.remove('is-open');
+      metricModal.setAttribute('aria-hidden', 'true');
+
+      if (lastPopupTrigger) {
+        lastPopupTrigger.focus();
+      }
+    }
+
+    document.querySelectorAll('[data-popup-title]').forEach((card) => {
+      card.addEventListener('click', () => {
+        openMetricPopup(card);
+      });
+    });
+
+    modalClose.addEventListener('click', closeMetricPopup);
+
+    metricModal.addEventListener('click', (event) => {
+      if (event.target === metricModal) {
+        closeMetricPopup();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (
+        event.key === 'Escape' &&
+        metricModal.classList.contains('is-open')
+      ) {
+        closeMetricPopup();
+      }
+    });
+
+
+    // Keep the GPS Fix state synchronized in the position side-card.
+
+    function syncGpsFixCard() {
+      const fixSource = el('fixText');
+      const fixTarget = el('fixTextSide');
+
+      if (fixSource && fixTarget) {
+        fixTarget.textContent = fixSource.textContent;
+        fixTarget.style.color =
+          fixSource.style.color || 'var(--green)';
+      }
+    }
+
+    syncGpsFixCard();
+
+    setInterval(syncGpsFixCard, 500);
 
   </script>
 </body>
