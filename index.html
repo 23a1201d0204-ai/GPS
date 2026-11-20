@@ -5,14 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>UAV Ground Station - 2 ESP32 + ATGM336H</title>
 
-  <!-- Leaflet Map -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <!-- MQTT -->
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-
-  <!-- Fonts & Icons -->
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
@@ -65,8 +60,6 @@
       pointer-events: auto;
     }
 
-    /* TOP BAR */
-
     .top-bar {
       display: flex;
       align-items: center;
@@ -95,8 +88,6 @@
       font-size: 25px;
       text-shadow: 0 0 15px rgba(56,189,248,.6);
     }
-
-    /* STATUS */
 
     .status-group {
       display: flex;
@@ -143,8 +134,6 @@
       background: rgba(56,189,248,.13);
     }
 
-    /* MAP HINT */
-
     .map-hint {
       position: absolute;
       top: 88px;
@@ -163,8 +152,6 @@
     .map-hint strong {
       color: var(--cyan);
     }
-
-    /* TELEMETRY PANEL */
 
     .dashboard-container {
       padding: 18px 22px 20px;
@@ -239,8 +226,6 @@
       color: var(--green);
     }
 
-    /* BOTTOM STATUS */
-
     .bottom-meta {
       display: flex;
       justify-content: space-between;
@@ -286,8 +271,6 @@
       background: rgba(56,189,248,.22);
     }
 
-    /* UAV MARKER */
-
     .uav-marker {
       background: transparent;
       border: 0;
@@ -299,8 +282,6 @@
       text-shadow: 0 0 10px #38bdf8,
                    0 0 18px rgba(56,189,248,.7);
     }
-
-    /* RESPONSIVE */
 
     @media (max-width: 950px) {
       .top-bar {
@@ -409,23 +390,17 @@
 </head>
 
 <body>
-
-  <!-- MAP -->
   <div id="map"></div>
 
-  <!-- USER INTERFACE -->
   <div class="ui-layer">
 
-    <!-- TOP STATUS BAR -->
     <header class="top-bar pointer-auto">
-
       <div class="logo">
         <i class="fa-solid fa-plane-up"></i>
         UAV GROUND STATION
       </div>
 
       <div class="status-group">
-
         <div id="cloudStatus" class="status-badge status-bad">
           <i class="fa-solid fa-server"></i>
           MQTT: ĐANG KẾT NỐI...
@@ -445,11 +420,9 @@
           <i class="fa-solid fa-link"></i>
           LIÊN KẾT: CHƯA CÓ DỮ LIỆU
         </div>
-
       </div>
     </header>
 
-    <!-- MAP INFORMATION -->
     <div class="map-hint pointer-auto">
       <strong>
         <i class="fa-solid fa-circle-info"></i>
@@ -459,9 +432,7 @@
       ESP32 #1 + ATGM336H → MQTT Broker → ESP32 #2 và Website
     </div>
 
-    <!-- TELEMETRY PANEL -->
     <section class="dashboard-container pointer-auto">
-
       <div class="dashboard-wrap">
 
         <div class="telemetry-panel">
@@ -516,7 +487,6 @@
 
         </div>
 
-        <!-- GPS INFORMATION -->
         <div class="bottom-meta">
 
           <div class="meta-left">
@@ -558,13 +528,12 @@
         </div>
       </div>
     </section>
-
   </div>
 
   <script>
-
     // ============================================================
     // 1. MQTT CONFIGURATION
+    // Giữ nguyên topic trên repository GitHub của bạn.
     // ============================================================
 
     const CONFIG = {
@@ -586,17 +555,19 @@
 
       },
 
-      gpsTimeoutMs: 10000,
+      gpsTimeoutMs: 12000,
 
       deviceTimeoutMs: 15000,
 
-      linkTimeoutMs: 15000
+      ackTimeoutMs: 12000,
+
+      maxPathPoints: 1000
 
     };
 
 
     // ============================================================
-    // 2. INITIALIZE MAP
+    // 2. MAP INITIALIZATION
     // ============================================================
 
     const DEFAULT_POSITION = [21.0285, 105.8542];
@@ -604,6 +575,7 @@
     const map = L.map('map', {
       zoomControl: true
     }).setView(DEFAULT_POSITION, 15);
+
 
     L.tileLayer(
       'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -613,8 +585,6 @@
       }
     ).addTo(map);
 
-
-    // UAV ICON
 
     const uavIcon = L.divIcon({
 
@@ -629,15 +599,11 @@
     });
 
 
-    // UAV MARKER
-
     const marker = L.marker(
       DEFAULT_POSITION,
       { icon: uavIcon }
     ).addTo(map);
 
-
-    // FLIGHT PATH
 
     const pathLine = L.polyline([], {
 
@@ -656,7 +622,7 @@
 
 
     // ============================================================
-    // 3. DEVICE STATUS
+    // 3. RUNTIME STATE
     // ============================================================
 
     const el = (id) => document.getElementById(id);
@@ -675,9 +641,13 @@
 
     let lastGpsPayload = null;
 
-    let receiverHasGps = false;
+    let lastGpsSeq = null;
 
     let lastAckSeq = null;
+
+    let receiverHasGps = false;
+
+    let gpsFixValid = false;
 
 
     function setBadge(node, mode, html) {
@@ -689,99 +659,204 @@
     }
 
 
+    function toBoolean(value, fallback = false) {
+
+      if (value === true || value === 1) return true;
+
+      if (
+        value === false ||
+        value === 0 ||
+        value === null
+      ) return false;
+
+      if (value === undefined) return fallback;
+
+      const normalized = String(value).trim().toLowerCase();
+
+      if (
+        [
+          'true',
+          '1',
+          'yes',
+          'on',
+          'online',
+          'valid',
+          'fix',
+          'a'
+        ].includes(normalized)
+      ) return true;
+
+      if (
+        [
+          'false',
+          '0',
+          'no',
+          'off',
+          'offline',
+          'invalid',
+          'no_fix',
+          'v'
+        ].includes(normalized)
+      ) return false;
+
+      return fallback;
+
+    }
+
+
+    function normalizeSeq(value) {
+
+      if (
+        value === undefined ||
+        value === null ||
+        value === ''
+      ) return null;
+
+      const n = Number(value);
+
+      return Number.isFinite(n)
+        ? String(n)
+        : String(value).trim();
+
+    }
+
+
+    function isFresh(timestamp, timeoutMs) {
+
+      return timestamp > 0 &&
+        (Date.now() - timestamp) <= timeoutMs;
+
+    }
+
+
     function updateConnectionUI() {
 
-      const now = Date.now();
+      const gpsOnline = isFresh(
+        lastSeen.gps,
+        CONFIG.gpsTimeoutMs
+      );
 
 
-      const gpsOnline =
-        lastSeen.gps > 0 &&
-        (now - lastSeen.gps) <= CONFIG.gpsTimeoutMs;
+      const receiverOnline = isFresh(
+        lastSeen.receiver,
+        CONFIG.deviceTimeoutMs
+      );
 
 
-      const receiverOnline =
-        lastSeen.receiver > 0 &&
-        (now - lastSeen.receiver) <= CONFIG.deviceTimeoutMs;
+      const ackFresh = isFresh(
+        lastSeen.ack,
+        CONFIG.ackTimeoutMs
+      );
+
+
+      // Nếu có seq ở cả GPS và ACK thì phải khớp nhau.
+      // Nếu firmware chưa gửi seq, vẫn cho phép kiểu ACK cũ.
+
+      const seqMatches =
+        lastGpsSeq === null || lastAckSeq === null
+          ? true
+          : lastGpsSeq === lastAckSeq;
 
 
       const linkOnline =
         receiverOnline &&
         receiverHasGps &&
-        lastSeen.ack > 0 &&
-        (now - lastSeen.ack) <= CONFIG.linkTimeoutMs;
+        ackFresh &&
+        seqMatches;
 
 
       // ESP32 GPS STATUS
 
-      if (gpsOnline) {
-
-        setBadge(
-          el('gpsEspStatus'),
-          'status-ok',
-          '<i class="fa-solid fa-satellite-dish"></i> ESP32 GPS: ONLINE'
-        );
-
-      } else {
-
-        setBadge(
-          el('gpsEspStatus'),
-          'status-bad',
-          '<i class="fa-solid fa-triangle-exclamation"></i> ESP32 GPS: OFFLINE'
-        );
-
-      }
+      setBadge(
+        el('gpsEspStatus'),
+        gpsOnline ? 'status-ok' : 'status-bad',
+        gpsOnline
+          ? '<i class="fa-solid fa-satellite-dish"></i> ESP32 GPS: ONLINE'
+          : '<i class="fa-solid fa-triangle-exclamation"></i> ESP32 GPS: OFFLINE'
+      );
 
 
       // ESP32 RECEIVER STATUS
 
-      if (receiverOnline) {
-
-        setBadge(
-          el('rxEspStatus'),
-          'status-ok',
-          '<i class="fa-solid fa-microchip"></i> ESP32 NHẬN: ONLINE'
-        );
-
-      } else {
-
-        setBadge(
-          el('rxEspStatus'),
-          'status-bad',
-          '<i class="fa-solid fa-triangle-exclamation"></i> ESP32 NHẬN: OFFLINE'
-        );
-
-      }
+      setBadge(
+        el('rxEspStatus'),
+        receiverOnline ? 'status-ok' : 'status-bad',
+        receiverOnline
+          ? '<i class="fa-solid fa-microchip"></i> ESP32 NHẬN: ONLINE'
+          : '<i class="fa-solid fa-triangle-exclamation"></i> ESP32 NHẬN: OFFLINE'
+      );
 
 
       // DATA LINK STATUS
 
       if (linkOnline) {
 
+        const seqLabel =
+          lastAckSeq !== null
+            ? ` #${lastAckSeq}`
+            : '';
+
         setBadge(
           el('linkStatus'),
           'status-ok',
-          '<i class="fa-solid fa-link"></i> LIÊN KẾT: ĐÃ NHẬN GPS'
+          `<i class="fa-solid fa-link"></i> LIÊN KẾT: ĐÃ NHẬN${seqLabel}`
         );
 
-        el('rxText').textContent = 'ĐÃ NHẬN';
+        el('rxText').textContent =
+          lastAckSeq !== null
+            ? `ĐÃ NHẬN GÓI #${lastAckSeq}`
+            : 'ĐÃ NHẬN GPS';
 
       } else {
+
+        let reason = 'CHƯA XÁC NHẬN';
+
+        if (!receiverOnline) {
+          reason = 'ESP32 #2 OFFLINE';
+        } else if (!ackFresh) {
+          reason = 'CHƯA CÓ ACK MỚI';
+        } else if (!seqMatches) {
+          reason = 'ACK KHÔNG KHỚP SEQ';
+        }
 
         setBadge(
           el('linkStatus'),
           'status-warn',
-          '<i class="fa-solid fa-link-slash"></i> LIÊN KẾT: CHƯA XÁC NHẬN'
+          `<i class="fa-solid fa-link-slash"></i> LIÊN KẾT: ${reason}`
         );
 
-        el('rxText').textContent =
-          receiverOnline ? 'CHƯA XÁC NHẬN' : 'ESP32 #2 OFFLINE';
+        el('rxText').textContent = reason;
 
       }
 
 
+      // GPS FIX STATUS
+
       if (!lastGpsPayload) {
 
-        el('fixText').textContent = 'CHƯA CÓ DỮ LIỆU';
+        el('fixText').textContent =
+          'CHƯA CÓ DỮ LIỆU';
+
+        el('fixText').style.color = '#fbbf24';
+
+      } else if (!gpsOnline) {
+
+        el('fixText').textContent =
+          'MẤT DỮ LIỆU GPS';
+
+        el('fixText').style.color = '#f87171';
+
+      } else if (gpsFixValid) {
+
+        el('fixText').textContent = 'CÓ FIX';
+
+        el('fixText').style.color = '#4ade80';
+
+      } else {
+
+        el('fixText').textContent = 'CHƯA CÓ FIX';
+
+        el('fixText').style.color = '#fbbf24';
 
       }
 
@@ -789,9 +864,8 @@
 
 
     // ============================================================
-    // 4. GPS DATA PROCESSING
+    // 4. JSON / GPS FIELD HELPERS
     // ============================================================
-
 
     function pick(data, keys) {
 
@@ -820,11 +894,7 @@
         value === undefined ||
         value === null ||
         value === ''
-      ) {
-
-        return fallback;
-
-      }
+      ) return fallback;
 
       const n = Number(value);
 
@@ -833,55 +903,152 @@
     }
 
 
-    function displayNumber(id, value, digits, suffix = '') {
+    function displayNumber(id, value, digits) {
 
       el(id).textContent =
         Number.isFinite(value)
-          ? value.toFixed(digits) + suffix
+          ? value.toFixed(digits)
           : '--';
 
     }
 
 
-    // CHECK GPS FIX
-
-    function parseFix(value, lat, lon, sats) {
+    function parseFix(value, lat, lon) {
 
       if (value !== undefined) {
-
-        if (value === true) return true;
-
-        const numericFix = Number(value);
-
-        if (Number.isFinite(numericFix)) {
-          return numericFix > 0;
-        }
-
-        const normalized = String(value).toLowerCase();
-
-        return [
-          'true',
-          'yes',
-          'valid',
-          'fix',
-          'gps_fix'
-        ].includes(normalized);
-
+        return toBoolean(value, false);
       }
 
-      return (
-        Number.isFinite(lat) &&
+      // Nếu firmware không gửi trường fix,
+      // kiểm tra tọa độ GPS hợp lệ.
+
+      return Number.isFinite(lat) &&
         Number.isFinite(lon) &&
-        sats >= 4 &&
-        !(lat === 0 && lon === 0)
-      );
+        Math.abs(lat) <= 90 &&
+        Math.abs(lon) <= 180 &&
+        !(lat === 0 && lon === 0);
 
     }
 
 
-    // UPDATE GPS DATA
+    function formatGpsTime(value, dateValue) {
 
-    function updateGpsData(data) {
+      if (
+        value === undefined ||
+        value === null ||
+        value === ''
+      ) return '--';
+
+
+      const raw = String(value).trim();
+
+
+      // NMEA UTC HHMMSS hoặc HHMMSS.sss.
+      // Ví dụ: 112345.00
+
+      const nmeaTime = raw.match(
+        /^(\d{2})(\d{2})(\d{2})(?:\.(\d+))?$/
+      );
+
+
+      if (nmeaTime) {
+
+        const hh = nmeaTime[1];
+
+        const mm = nmeaTime[2];
+
+        const ss = nmeaTime[3];
+
+        const fraction = nmeaTime[4]
+          ? `.${nmeaTime[4].slice(0, 3)}`
+          : '';
+
+        const timeText =
+          `${hh}:${mm}:${ss}${fraction} UTC`;
+
+
+        // Ngày NMEA dạng DDMMYY.
+
+        if (
+          dateValue !== undefined &&
+          dateValue !== null
+        ) {
+
+          const dateMatch = String(dateValue)
+            .trim()
+            .match(/^(\d{2})(\d{2})(\d{2})$/);
+
+          if (dateMatch) {
+
+            const year =
+              Number(dateMatch[3]) >= 80
+                ? 1900 + Number(dateMatch[3])
+                : 2000 + Number(dateMatch[3]);
+
+            return `${dateMatch[1]}/${dateMatch[2]}/${year} ${timeText}`;
+
+          }
+
+        }
+
+        return timeText;
+
+      }
+
+
+      // Unix timestamp giây hoặc mili-giây.
+
+      if (
+        /^\d{10}(?:\.\d+)?$/.test(raw) ||
+        /^\d{13}$/.test(raw)
+      ) {
+
+        const n = Number(raw);
+
+        const date = new Date(
+          raw.length >= 13 ? n : n * 1000
+        );
+
+        return Number.isNaN(date.getTime())
+          ? raw
+          : `${date.toISOString().replace('T', ' ').replace('Z', ' UTC')}`;
+
+      }
+
+
+      // ISO date-time hoặc chuỗi ngày giờ đầy đủ.
+
+      const date = new Date(raw);
+
+      if (
+        !Number.isNaN(date.getTime()) &&
+        (
+          raw.includes('-') ||
+          raw.includes('T') ||
+          raw.includes(':')
+        )
+      ) {
+
+        return `${date.toISOString().replace('T', ' ').replace('Z', ' UTC')}`;
+
+      }
+
+      return raw;
+
+    }
+
+
+    // ============================================================
+    // 5. PROCESS GPS TELEMETRY FROM ESP32 #1 + ATGM336H
+    // ============================================================
+
+    function updateGpsData(payload) {
+
+      const data =
+        payload && typeof payload.gps === 'object'
+          ? payload.gps
+          : payload;
+
 
       const lat = numberValue(
         pick(data, ['lat', 'latitude'])
@@ -894,32 +1061,71 @@
 
 
       const alt = numberValue(
-        pick(data, ['alt', 'altitude', 'altitude_m'])
+        pick(data, [
+          'alt',
+          'altitude',
+          'altitude_m',
+          'alt_m'
+        ])
       );
 
 
       const sats = numberValue(
-        pick(data, ['sat', 'sats', 'satellites']),
-        0
+        pick(data, [
+          'sat',
+          'sats',
+          'satellites',
+          'satellites_in_view'
+        ]),
+        NaN
       );
 
 
       let speed = numberValue(
-        pick(data, ['speed_kmh', 'speedKmh', 'speed'])
+        pick(data, [
+          'speed_kmh',
+          'speed_kph',
+          'speedKmh',
+          'speedKph'
+        ])
       );
 
 
       const speedMps = numberValue(
-        pick(data, ['speed_mps', 'speedMps'])
+        pick(data, [
+          'speed_mps',
+          'speedMps'
+        ])
       );
 
 
-      if (
-        !Number.isFinite(speed) &&
-        Number.isFinite(speedMps)
-      ) {
+      const genericSpeed = numberValue(
+        pick(data, ['speed'])
+      );
 
-        speed = speedMps * 3.6;
+
+      const speedUnit = String(
+        pick(data, ['speed_unit', 'speedUnit']) || 'kmh'
+      ).toLowerCase();
+
+
+      if (!Number.isFinite(speed)) {
+
+        if (Number.isFinite(speedMps)) {
+
+          speed = speedMps * 3.6;
+
+        } else if (Number.isFinite(genericSpeed)) {
+
+          speed = (
+            speedUnit === 'm/s' ||
+            speedUnit === 'mps' ||
+            speedUnit === 'ms'
+          )
+            ? genericSpeed * 3.6
+            : genericSpeed;
+
+        }
 
       }
 
@@ -929,7 +1135,8 @@
           'course',
           'heading',
           'course_deg',
-          'heading_deg'
+          'heading_deg',
+          'course_over_ground'
         ])
       );
 
@@ -939,11 +1146,15 @@
       );
 
 
-      const hasFix = parseFix(
-        pick(data, ['fix', 'gpsFix', 'valid']),
+      gpsFixValid = parseFix(
+        pick(data, [
+          'fix',
+          'gpsFix',
+          'valid',
+          'gps_valid'
+        ]),
         lat,
-        lon,
-        sats
+        lon
       );
 
 
@@ -955,12 +1166,10 @@
 
       displayNumber('alt', alt, 1);
 
-
       el('sat').textContent =
         Number.isFinite(sats)
           ? String(Math.round(sats))
           : '--';
-
 
       displayNumber('speed', speed, 1);
 
@@ -969,20 +1178,23 @@
       displayNumber('hdop', hdop, 1);
 
 
-      // GPS VALIDATION AND MAP UPDATE
+      // GPS COORDINATES VALIDATION
 
-      if (
-        hasFix &&
+      const validCoordinates =
         Number.isFinite(lat) &&
         Number.isFinite(lon) &&
         Math.abs(lat) <= 90 &&
         Math.abs(lon) <= 180 &&
-        !(lat === 0 && lon === 0)
-      ) {
+        !(lat === 0 && lon === 0);
 
-        const pos = [lat, lon];
 
-        marker.setLatLng(pos);
+      // UPDATE MAP
+
+      if (gpsFixValid && validCoordinates) {
+
+        const position = [lat, lon];
+
+        marker.setLatLng(position);
 
 
         if (
@@ -991,21 +1203,23 @@
           lastPosition[1] !== lon
         ) {
 
-          pathLine.addLatLng(pos);
+          pathLine.addLatLng(position);
 
-          lastPosition = pos;
+          lastPosition = position;
 
         }
 
 
-        // LIMIT PATH TO 1000 POINTS
+        // Giới hạn tối đa 1000 điểm đường đi.
 
         const points = pathLine.getLatLngs();
 
-        if (points.length > 1000) {
+        if (points.length > CONFIG.maxPathPoints) {
 
           pathLine.setLatLngs(
-            points.slice(points.length - 1000)
+            points.slice(
+              points.length - CONFIG.maxPathPoints
+            )
           );
 
         }
@@ -1013,22 +1227,11 @@
 
         if (firstFix) {
 
-          map.setView(pos, 17);
+          map.setView(position, 17);
 
           firstFix = false;
 
         }
-
-
-        el('fixText').textContent = 'CÓ FIX';
-
-        el('fixText').style.color = '#4ade80';
-
-      } else {
-
-        el('fixText').textContent = 'CHƯA CÓ FIX';
-
-        el('fixText').style.color = '#fbbf24';
 
       }
 
@@ -1041,70 +1244,59 @@
       );
 
 
+      const dateValue = pick(
+        data,
+        ['date', 'gpsDate']
+      );
+
+
       if (timeValue !== undefined) {
 
-        let normalizedTime = timeValue;
-
-
-        if (
-          typeof timeValue === 'number' ||
-          /^\d+(\.\d+)?$/.test(String(timeValue))
-        ) {
-
-          const numericTime = Number(timeValue);
-
-          if (numericTime > 0) {
-
-            normalizedTime = new Date(
-              numericTime < 1e12
-                ? numericTime * 1000
-                : numericTime
-            );
-
-          }
-
-        }
-
-
-        const date =
-          normalizedTime instanceof Date
-            ? normalizedTime
-            : new Date(normalizedTime);
-
-
-        const displayTime =
-          Number.isFinite(date.getTime())
-            ? date.toISOString()
-                .replace('T', ' ')
-                .replace('Z', '')
-            : String(timeValue);
-
-
-        el('gpsTime').innerHTML =
-          '<i class="fa-solid fa-clock"></i> GPS UTC: ' +
-          displayTime;
+        el('gpsTime').textContent =
+          `GPS UTC: ${formatGpsTime(timeValue, dateValue)}`;
 
       }
 
-
-      // LAST UPDATE
 
       el('lastUpdate').textContent =
         new Date().toLocaleTimeString('vi-VN');
 
 
-      lastGpsPayload = data;
+      lastGpsPayload = payload;
+
+
+      // SEQUENCE NUMBER
+
+      const seq =
+        pick(data, [
+          'seq',
+          'sequence',
+          'packet_id'
+        ]) ??
+        pick(payload, [
+          'seq',
+          'sequence',
+          'packet_id'
+        ]);
+
+
+      if (seq !== undefined) {
+
+        lastGpsSeq = normalizeSeq(seq);
+
+      }
+
+
+      updateConnectionUI();
 
     }
 
 
     // ============================================================
-    // 5. MQTT CONNECTION
+    // 6. MQTT CONNECTION
     // ============================================================
 
-
     const cloudBadge = el('cloudStatus');
-
 
     const clientId =
       'uav_web_' +
@@ -1115,7 +1307,7 @@
       CONFIG.brokerUrl,
       {
 
-        clientId: clientId,
+        clientId,
 
         clean: true,
 
@@ -1129,7 +1321,7 @@
     );
 
 
-    // MQTT CONNECTED
+    // MQTT CONNECT
 
     client.on('connect', () => {
 
@@ -1156,13 +1348,13 @@
       client.subscribe(
         subscriptions,
         { qos: 0 },
-        (err) => {
+        (error) => {
 
-          if (err) {
+          if (error) {
 
             console.error(
               'Không đăng ký được MQTT topic:',
-              err
+              error
             );
 
           }
@@ -1186,9 +1378,22 @@
     });
 
 
-    // MQTT DISCONNECTED
+    // MQTT CLOSE
 
     client.on('close', () => {
+
+      setBadge(
+        cloudBadge,
+        'status-bad',
+        '<i class="fa-solid fa-server"></i> MQTT: OFFLINE'
+      );
+
+    });
+
+
+    // MQTT OFFLINE
+
+    client.on('offline', () => {
 
       setBadge(
         cloudBadge,
@@ -1215,150 +1420,238 @@
 
 
     // ============================================================
-    // 6. RECEIVE DATA FROM TWO ESP32 DEVICES
+    // 7. RECEIVE MESSAGES FROM ESP32 #1 / ESP32 #2
     // ============================================================
 
+    client.on(
+      'message',
+      (topic, message, packet) => {
 
-    client.on('message', (topic, message) => {
+        let data;
 
-      let data;
+        try {
+
+          data = JSON.parse(message.toString());
+
+        } catch (error) {
+
+          console.error(
+            'JSON không hợp lệ:',
+            topic,
+            message.toString()
+          );
+
+          return;
+
+        }
 
 
-      try {
+        if (!data || typeof data !== 'object') {
 
-        data = JSON.parse(message.toString());
+          console.warn(
+            'Payload MQTT không phải JSON object:',
+            topic
+          );
 
-      } catch (error) {
+          return;
 
-        console.error(
-          'JSON không hợp lệ từ topic',
-          topic,
-          message.toString()
+        }
+
+
+        const retained = Boolean(
+          packet && packet.retain
         );
 
-        return;
-
-      }
+        const now = Date.now();
 
 
-      // ----------------------------------
-      // GPS DATA FROM ESP32 #1
-      // ----------------------------------
+        // ----------------------------------
+        // ESP32 #1: GPS TELEMETRY
+        // ----------------------------------
 
-      if (topic === CONFIG.topics.gps) {
+        if (topic === CONFIG.topics.gps) {
 
-        lastSeen.gps = Date.now();
+          if (!retained) {
+            lastSeen.gps = now;
+          }
 
-        updateGpsData(data);
+          updateGpsData(data);
 
-        updateConnectionUI();
-
-        return;
-
-      }
-
-
-      // ----------------------------------
-      // ESP32 #1 STATUS
-      // ----------------------------------
-
-      if (topic === CONFIG.topics.gpsStatus) {
-
-        if (data.online === false) {
-
-          lastSeen.gps = 0;
-
-        } else {
-
-          lastSeen.gps = Date.now();
-
-        }
-
-        updateConnectionUI();
-
-        return;
-
-      }
-
-
-      // ----------------------------------
-      // ESP32 #2 STATUS
-      // ----------------------------------
-
-      if (topic === CONFIG.topics.receiverStatus) {
-
-        if (data.online === false) {
-
-          lastSeen.receiver = 0;
-
-        } else {
-
-          lastSeen.receiver = Date.now();
+          return;
 
         }
 
 
-        if (data.gps_received !== undefined) {
+        // ----------------------------------
+        // ESP32 #1: HEARTBEAT / STATUS
+        // ----------------------------------
 
-          receiverHasGps = Boolean(data.gps_received);
+        if (topic === CONFIG.topics.gpsStatus) {
 
-          if (receiverHasGps) {
+          const online = toBoolean(
+            data.online,
+            true
+          );
 
-            lastSeen.ack = Date.now();
 
-          } else {
+          if (!retained) {
+
+            lastSeen.gps = online ? now : 0;
+
+          } else if (!online) {
+
+            lastSeen.gps = 0;
+
+          }
+
+
+          updateConnectionUI();
+
+          return;
+
+        }
+
+
+        // ----------------------------------
+        // ESP32 #2: HEARTBEAT / STATUS
+        // ----------------------------------
+
+        if (topic === CONFIG.topics.receiverStatus) {
+
+          const online = toBoolean(
+            data.online,
+            true
+          );
+
+
+          if (!retained) {
+
+            lastSeen.receiver = online ? now : 0;
+
+          } else if (!online) {
+
+            lastSeen.receiver = 0;
+
+          }
+
+
+          if (data.gps_received !== undefined) {
+
+            receiverHasGps = toBoolean(
+              data.gps_received,
+              false
+            );
+
+
+            if (
+              !retained &&
+              receiverHasGps
+            ) {
+
+              lastSeen.ack = now;
+
+            }
+
+
+            if (!receiverHasGps) {
+
+              lastSeen.ack = 0;
+
+            }
+
+          }
+
+
+          const ackSeq = pick(
+            data,
+            [
+              'last_gps_seq',
+              'seq',
+              'last_seq'
+            ]
+          );
+
+
+          if (ackSeq !== undefined) {
+
+            lastAckSeq = normalizeSeq(ackSeq);
+
+
+            if (
+              !retained &&
+              receiverHasGps
+            ) {
+
+              lastSeen.ack = now;
+
+            }
+
+          }
+
+
+          updateConnectionUI();
+
+          return;
+
+        }
+
+
+        // ----------------------------------
+        // ESP32 #2: ACK FOR RECEIVED GPS
+        // ----------------------------------
+
+        if (topic === CONFIG.topics.receiverAck) {
+
+          if (!retained) {
+
+            lastSeen.receiver = now;
+
+            lastSeen.ack = now;
+
+          }
+
+
+          receiverHasGps = toBoolean(
+            data.gps_received,
+            data.seq !== undefined ||
+            data.last_gps_seq !== undefined
+          );
+
+
+          const ackSeq = pick(
+            data,
+            [
+              'seq',
+              'last_gps_seq',
+              'last_seq'
+            ]
+          );
+
+
+          if (ackSeq !== undefined) {
+
+            lastAckSeq = normalizeSeq(ackSeq);
+
+          }
+
+
+          if (!receiverHasGps) {
 
             lastSeen.ack = 0;
 
           }
 
-        }
 
-
-        if (data.last_gps_seq !== undefined) {
-
-          lastAckSeq = data.last_gps_seq;
+          updateConnectionUI();
 
         }
-
-
-        updateConnectionUI();
-
-        return;
 
       }
-
-
-      // ----------------------------------
-      // GPS ACK FROM ESP32 #2
-      // ----------------------------------
-
-      if (topic === CONFIG.topics.receiverAck) {
-
-        lastSeen.receiver = Date.now();
-
-        lastSeen.ack = Date.now();
-
-        receiverHasGps =
-          data.gps_received !== false;
-
-
-        if (data.seq !== undefined) {
-
-          lastAckSeq = data.seq;
-
-        }
-
-
-        updateConnectionUI();
-
-      }
-
-    });
+    );
 
 
     // ============================================================
-    // 7. DEVICE TIMEOUT CHECK
+    // 8. UPDATE STATUS EVERY SECOND
     // ============================================================
 
     setInterval(
@@ -1368,33 +1661,38 @@
 
 
     // ============================================================
-    // 8. CLEAR FLIGHT PATH
+    // 9. CLEAR FLIGHT PATH
     // ============================================================
 
-    el('clearPathBtn').addEventListener('click', () => {
+    el('clearPathBtn').addEventListener(
+      'click',
+      () => {
 
-      pathLine.setLatLngs([]);
+        pathLine.setLatLngs([]);
 
-      lastPosition = null;
-
-    });
-
-
-    // ============================================================
-    // 9. CLEANUP MQTT CONNECTION
-    // ============================================================
-
-    window.addEventListener('beforeunload', () => {
-
-      if (client && client.connected) {
-
-        client.end(true);
+        lastPosition = null;
 
       }
+    );
 
-    });
+
+    // ============================================================
+    // 10. CLEANUP MQTT CONNECTION
+    // ============================================================
+
+    window.addEventListener(
+      'beforeunload',
+      () => {
+
+        if (client) {
+
+          client.end(true);
+
+        }
+
+      }
+    );
 
   </script>
-
 </body>
 </html>
