@@ -3,33 +3,35 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#040914" />
-  <title>UAV Ground Station | Tactical Telemetry HUD</title>
+  <meta name="theme-color" content="#0f172a" />
+  <title>UAV Ground Station | Telemetry</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
   <style>
     :root {
       color-scheme: dark;
-      --bg: #040914;
-      --surface: rgba(10, 19, 34, 0.78);
-      --surface-elevated: rgba(15, 29, 50, 0.88);
-      --border: rgba(56, 189, 248, 0.16);
-      --border-active: rgba(56, 189, 248, 0.45);
-      --cyan: #38bdf8;
-      --cyan-glow: rgba(56, 189, 248, 0.25);
-      --emerald: #10b981;
-      --emerald-glow: rgba(16, 185, 129, 0.25);
-      --rose: #f43f5e;
-      --amber: #f59e0b;
-      --text-main: #f1f5f9;
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-alt: #162032;
+      --border: #334155;
+      --border-hover: #475569;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
       --text-muted: #64748b;
-      --text-dim: #94a3b8;
-      --font-ui: 'Chakra Petch', sans-serif;
+      --accent: #3b82f6;
+      --accent-subtle: rgba(59, 130, 246, 0.12);
+      --green: #10b981;
+      --green-subtle: rgba(16, 185, 129, 0.12);
+      --red: #ef4444;
+      --red-subtle: rgba(239, 68, 68, 0.12);
+      --amber: #f59e0b;
+      --amber-subtle: rgba(245, 158, 11, 0.12);
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
     }
 
@@ -38,18 +40,14 @@
     body {
       min-height: 100vh;
       background-color: var(--bg);
-      background-image: 
-        radial-gradient(circle at 15% 15%, rgba(14, 165, 233, 0.12), transparent 38%),
-        radial-gradient(circle at 85% 80%, rgba(16, 185, 129, 0.08), transparent 35%),
-        linear-gradient(rgba(56, 189, 248, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(56, 189, 248, 0.03) 1px, transparent 1px);
-      background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
-      color: var(--text-main);
-      font-family: var(--font-ui);
-      overflow-x: hidden;
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* TOPBAR HUD */
+    /* TOPBAR */
     .topbar {
       position: sticky;
       top: 0;
@@ -59,219 +57,157 @@
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 16px;
-      padding: 14px clamp(16px, 3vw, 36px);
-      background: rgba(4, 9, 20, 0.85);
-      backdrop-filter: blur(20px);
+      padding: 14px clamp(16px, 3vw, 32px);
+      background-color: #0b1120;
       border-bottom: 1px solid var(--border);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
     }
 
-    .brand-logo {
-      position: relative;
+    .brand-icon {
       display: grid;
       place-items: center;
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(14, 165, 233, 0.04));
-      border: 1px solid var(--border-active);
-      color: var(--cyan);
-      font-size: 20px;
-      box-shadow: 0 0 20px var(--cyan-glow);
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background-color: var(--accent-subtle);
+      color: var(--accent);
+      font-size: 17px;
     }
 
-    .brand-logo::after {
-      content: '';
-      position: absolute;
-      inset: -3px;
-      border-radius: 14px;
-      border: 1px dashed rgba(56, 189, 248, 0.35);
-      animation: spinSlow 18s linear infinite;
-    }
-
-    @keyframes spinSlow {
-      to { transform: rotate(360deg); }
-    }
-
-    .brand-info h1 {
-      font-size: 20px;
+    .brand-text h1 {
+      font-size: 16px;
       font-weight: 700;
-      letter-spacing: 2px;
-      color: #fff;
-      line-height: 1.1;
+      color: var(--text-primary);
+      letter-spacing: -0.2px;
     }
 
-    .brand-info span {
-      display: block;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 2.5px;
-      color: var(--cyan);
-      margin-top: 3px;
+    .brand-text p {
+      font-size: 12px;
+      color: var(--text-secondary);
     }
 
-    .status-bar {
+    .status-group {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
     }
 
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 13px;
-      border-radius: 8px;
-      font-size: 11.5px;
-      font-weight: 700;
-      letter-spacing: 0.8px;
-      border: 1px solid;
-      background: rgba(15, 23, 42, 0.65);
-      transition: all 0.25s ease;
-    }
-
-    .status-ok {
-      color: #34d399;
-      border-color: rgba(16, 185, 129, 0.4);
-      background: rgba(16, 185, 129, 0.1);
-      box-shadow: 0 0 15px rgba(16, 185, 129, 0.12);
-    }
-
-    .status-bad {
-      color: #fb7185;
-      border-color: rgba(244, 63, 94, 0.4);
-      background: rgba(244, 63, 94, 0.1);
-    }
-
-    .status-warn {
-      color: #fbbf24;
-      border-color: rgba(245, 158, 11, 0.4);
-      background: rgba(245, 158, 11, 0.1);
-    }
-
-    /* MAIN CONTAINER */
-    .container {
-      width: min(1640px, 100%);
-      margin: 0 auto;
-      padding: 22px clamp(14px, 2.5vw, 32px) 40px;
-    }
-
-    /* MAIN GRID */
-    .hud-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.85fr) minmax(350px, 1fr);
-      gap: 20px;
-      align-items: stretch;
-    }
-
-    /* GLASS PANEL */
-    .glass-panel {
-      position: relative;
-      background: var(--surface);
-      backdrop-filter: blur(18px);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
-      overflow: hidden;
-    }
-
-    /* Tactical Corner Brackets */
-    .glass-panel::before, .glass-panel::after {
-      content: '';
-      position: absolute;
-      width: 14px;
-      height: 14px;
-      border-color: var(--cyan);
-      border-style: solid;
-      pointer-events: none;
-      z-index: 10;
-      opacity: 0.65;
-    }
-    .glass-panel::before { top: 0; left: 0; border-width: 2px 0 0 2px; border-top-left-radius: 18px; }
-    .glass-panel::after { bottom: 0; right: 0; border-width: 0 2px 2px 0; border-bottom-right-radius: 18px; }
-
-    /* MAP PANEL */
-    .map-card {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .panel-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 15px 20px;
-      border-bottom: 1px solid var(--border);
-      background: rgba(7, 14, 27, 0.6);
-    }
-
-    .panel-title-group {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .panel-title-group i {
-      color: var(--cyan);
-      font-size: 16px;
-    }
-
-    .panel-title-group h2 {
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: #f8fafc;
-    }
-
-    .map-controls {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .btn-hud {
+    .badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
       padding: 6px 12px;
       border-radius: 8px;
-      border: 1px solid rgba(56, 189, 248, 0.35);
-      background: rgba(56, 189, 248, 0.1);
-      color: #bae6fd;
-      font-family: var(--font-ui);
       font-size: 12px;
       font-weight: 600;
-      letter-spacing: 0.6px;
+      border: 1px solid transparent;
+    }
+
+    .badge-ok {
+      background-color: var(--green-subtle);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.25);
+    }
+
+    .badge-bad {
+      background-color: var(--red-subtle);
+      color: #f87171;
+      border-color: rgba(239, 68, 68, 0.25);
+    }
+
+    .badge-warn {
+      background-color: var(--amber-subtle);
+      color: #fbbf24;
+      border-color: rgba(245, 158, 11, 0.25);
+    }
+
+    /* LAYOUT CONTAINER */
+    .container {
+      width: min(1560px, 100%);
+      margin: 0 auto;
+      padding: 24px clamp(16px, 2.5vw, 32px) 48px;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.85fr) minmax(340px, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    /* CLEAN CARD */
+    .card {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background-color: var(--surface-alt);
+    }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .card-title i {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background-color: var(--surface);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
     }
 
-    .btn-hud:hover {
-      background: rgba(56, 189, 248, 0.22);
-      border-color: var(--cyan);
-      color: #fff;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 15px rgba(56, 189, 248, 0.2);
+    .btn:hover {
+      background-color: #273549;
+      border-color: var(--border-hover);
     }
 
-    .btn-hud.active {
-      background: rgba(16, 185, 129, 0.2);
-      border-color: #34d399;
-      color: #6ee7b7;
+    .btn.active {
+      background-color: var(--accent-subtle);
+      border-color: var(--accent);
+      color: #93c5fd;
     }
 
+    /* MAP AREA */
     .map-wrapper {
       position: relative;
-      flex: 1;
-      min-height: 480px;
-      background: #060d19;
+      height: 540px;
+      background-color: #cbd5e1;
     }
 
     #map {
@@ -280,495 +216,438 @@
       z-index: 1;
     }
 
-    /* Dark Mode Map Filter for Tactical Look */
-    .dark-tiles .leaflet-tile-pane {
-      filter: invert(100%) hue-rotate(180deg) brightness(92%) contrast(95%) saturate(85%);
+    /* Chế độ bản đồ tối dịu mắt (không gắt) */
+    .muted-dark-map .leaflet-tile-pane {
+      filter: invert(90%) hue-rotate(180deg) brightness(95%) contrast(90%) saturate(70%);
     }
 
-    /* Floating Map HUD Overlay */
-    .map-overlay-top {
+    .map-pill-overlay {
       position: absolute;
-      top: 14px;
-      right: 14px;
+      top: 12px;
+      right: 12px;
       z-index: 500;
       display: flex;
-      flex-direction: column;
       gap: 8px;
       pointer-events: none;
     }
 
-    .hud-chip {
-      padding: 7px 12px;
-      border-radius: 8px;
-      background: rgba(4, 9, 20, 0.82);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      font-family: var(--font-mono);
-      font-size: 11.5px;
-      color: #e2e8f0;
-      display: flex;
+    .map-chip {
+      display: inline-flex;
       align-items: center;
-      gap: 8px;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      background-color: rgba(15, 23, 42, 0.88);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      font-size: 12px;
+      font-weight: 500;
     }
 
-    .live-dot {
-      width: 8px;
-      height: 8px;
+    .dot-live {
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 10px #10b981;
-      animation: pulseDot 1.6s infinite;
+      background-color: var(--green);
     }
 
-    @keyframes pulseDot {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.4); opacity: 0.6; }
-    }
-
-    .map-footer {
+    .card-footer {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 12px 20px;
+      padding: 12px 18px;
       border-top: 1px solid var(--border);
-      background: rgba(4, 9, 20, 0.75);
+      background-color: var(--surface-alt);
       font-size: 12.5px;
+      color: var(--text-secondary);
     }
 
-    .footer-stats {
+    .footer-meta {
       display: flex;
       flex-wrap: wrap;
-      gap: 18px;
-      color: var(--text-dim);
+      gap: 16px;
     }
 
-    .footer-stats strong {
+    .footer-meta strong {
       font-family: var(--font-mono);
-      color: #f8fafc;
+      color: var(--text-primary);
+      font-weight: 600;
     }
 
-    /* SIDE COLUMN: ATTITUDE + GPS + LINK */
-    .side-stack {
+    /* SIDE COLUMN */
+    .side-column {
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 16px;
     }
 
-    /* ARTIFICIAL HORIZON (PFD ATTITUDE INDICATOR) */
-    .horizon-panel {
+    .card-body {
       padding: 16px 18px;
     }
 
-    .horizon-wrapper {
+    /* ATTITUDE HORIZON (CLEAN AVIATION STYLE) */
+    .attitude-layout {
       display: grid;
-      grid-template-columns: 148px 1fr;
+      grid-template-columns: 132px 1fr;
       gap: 16px;
       align-items: center;
-      margin-top: 12px;
     }
 
-    .attitude-ball {
+    .horizon-circle {
       position: relative;
-      width: 148px;
-      height: 148px;
+      width: 132px;
+      height: 132px;
       border-radius: 50%;
       overflow: hidden;
-      border: 2px solid rgba(56, 189, 248, 0.5);
-      box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.75), 0 0 20px rgba(56, 189, 248, 0.15);
-      background: #0284c7;
+      border: 2px solid var(--border-hover);
+      background-color: #0284c7;
     }
 
-    .horizon-sky-ground {
+    .horizon-plane {
       position: absolute;
       width: 240%;
       height: 240%;
       left: -70%;
       top: -70%;
-      background: linear-gradient(to bottom, #0369a1 0%, #0ea5e9 49.5%, #ffffff 49.5%, #ffffff 50.5%, #78350f 50.5%, #451a03 100%);
+      background: linear-gradient(to bottom, #0369a1 0%, #38bdf8 49.4%, #ffffff 49.4%, #ffffff 50.6%, #92400e 50.6%, #451a03 100%);
       transition: transform 0.15s ease-out;
-      will-change: transform;
     }
 
-    .horizon-pitch-ladder {
+    .horizon-marks {
       position: absolute;
       inset: 0;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      gap: 14px;
-      opacity: 0.75;
+      gap: 12px;
+      opacity: 0.8;
     }
 
-    .ladder-line {
-      width: 34px;
-      height: 1.5px;
-      background: #fff;
-    }
-    .ladder-line.short { width: 18px; }
+    .h-line { width: 28px; height: 1.5px; background: #fff; }
+    .h-line.sm { width: 16px; }
 
-    .aircraft-reticle {
+    .center-reticle {
       position: absolute;
       inset: 0;
       display: grid;
       place-items: center;
       pointer-events: none;
-      z-index: 5;
     }
 
-    .reticle-wing {
+    .reticle-bar {
       position: relative;
-      width: 84px;
-      height: 3px;
-      background: #fbbf24;
-      box-shadow: 0 0 8px rgba(251, 191, 36, 0.8);
+      width: 72px;
+      height: 2.5px;
+      background-color: #fbbf24;
     }
 
-    .reticle-wing::after {
+    .reticle-bar::after {
       content: '';
       position: absolute;
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
-      width: 9px;
-      height: 9px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
-      background: #fbbf24;
-      border: 2px solid #040914;
+      background-color: #fbbf24;
     }
 
-    .attitude-readouts {
+    .attitude-stats {
       display: flex;
       flex-direction: column;
       gap: 10px;
     }
 
-    .att-box {
+    .stat-row-box {
       padding: 10px 14px;
-      border-radius: 12px;
-      background: rgba(15, 29, 50, 0.7);
-      border: 1px solid rgba(56, 189, 248, 0.18);
+      border-radius: 10px;
+      background-color: var(--surface-alt);
+      border: 1px solid var(--border);
       cursor: pointer;
-      transition: 0.2s ease;
+      transition: border-color 0.15s ease;
     }
 
-    .att-box:hover {
-      border-color: var(--cyan);
-      background: rgba(20, 39, 66, 0.9);
+    .stat-row-box:hover {
+      border-color: var(--border-hover);
     }
 
-    .att-box-label {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 1.5px;
-      color: var(--text-dim);
-      display: flex;
-      justify-content: space-between;
+    .stat-row-box span {
+      display: block;
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--text-secondary);
     }
 
-    .att-box-val {
-      font-family: var(--font-mono);
-      font-size: 24px;
-      font-weight: 700;
-      color: #fff;
+    .stat-row-box strong {
+      display: block;
       margin-top: 2px;
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-primary);
     }
 
-    /* COORDINATE & SIGNAL CARD */
-    .side-card {
-      padding: 16px 18px;
-    }
-
-    .mini-grid {
+    /* TWO COLUMN MINI GRID */
+    .two-col-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-top: 12px;
     }
 
-    .data-tile {
-      position: relative;
+    .sub-tile {
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      padding: 14px;
-      border-radius: 13px;
-      background: linear-gradient(155deg, rgba(18, 34, 58, 0.85), rgba(9, 18, 33, 0.95));
-      border: 1px solid rgba(148, 163, 184, 0.14);
-      color: var(--text-main);
+      padding: 12px 14px;
+      border-radius: 10px;
+      background-color: var(--surface-alt);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
       text-align: left;
       cursor: pointer;
-      transition: all 0.22s ease;
+      transition: border-color 0.15s ease, background-color 0.15s ease;
     }
 
-    .data-tile:hover {
-      transform: translateY(-3px);
-      border-color: var(--border-active);
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35), 0 0 18px rgba(56, 189, 248, 0.12);
+    .sub-tile:hover {
+      background-color: #1e293b;
+      border-color: var(--border-hover);
     }
 
-    .tile-header {
-      width: 100%;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
+    .sub-tile-label {
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
     }
 
-    .tile-label {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 1.3px;
-      color: var(--text-dim);
-      text-transform: uppercase;
-    }
-
-    .tile-icon {
-      color: var(--cyan);
-      font-size: 13px;
-    }
-
-    .tile-value {
+    .sub-tile-val {
       font-family: var(--font-mono);
-      font-size: 17px;
-      font-weight: 700;
-      color: #f8fafc;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
       word-break: break-all;
     }
 
-    .tile-unit {
-      font-family: var(--font-ui);
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--cyan);
-      margin-left: 3px;
-    }
-
-    .fix-banner {
+    .fix-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-top: 12px;
+      margin-top: 10px;
       padding: 10px 14px;
       border-radius: 10px;
-      background: rgba(15, 23, 42, 0.7);
-      border: 1px solid rgba(56, 189, 248, 0.2);
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 1px;
+      background-color: var(--surface-alt);
+      border: 1px solid var(--border);
+      font-size: 12.5px;
     }
 
-    /* TELEMETRY BOTTOM SECTION */
-    .section-bar {
+    .fix-row span { color: var(--text-secondary); }
+
+    /* TELEMETRY SECTION */
+    .section-header {
       display: flex;
-      align-items: center;
+      align-items: baseline;
       justify-content: space-between;
-      margin: 26px 0 14px;
+      margin: 28px 0 14px;
     }
 
-    .section-bar h3 {
-      font-size: 17px;
-      font-weight: 700;
-      letter-spacing: 1.8px;
-      text-transform: uppercase;
-      color: #f1f5f9;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .section-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
     }
 
-    .section-bar h3::before {
-      content: '';
-      width: 4px;
-      height: 18px;
-      border-radius: 2px;
-      background: var(--cyan);
-      box-shadow: 0 0 10px var(--cyan);
-    }
-
-    .section-bar span {
-      font-size: 12px;
+    .section-header p {
+      font-size: 12.5px;
       color: var(--text-muted);
     }
 
-    .telemetry-grid {
+    .metrics-grid {
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
       gap: 14px;
     }
 
-    .tele-card {
-      position: relative;
+    .metric-card {
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      min-height: 132px;
+      min-height: 118px;
       padding: 16px;
-      border-radius: 16px;
-      background: linear-gradient(150deg, rgba(16, 31, 54, 0.85), rgba(8, 17, 31, 0.94));
-      border: 1px solid rgba(148, 163, 184, 0.14);
+      border-radius: 12px;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
       text-align: left;
-      color: var(--text-main);
+      color: var(--text-primary);
       cursor: pointer;
-      overflow: hidden;
-      transition: all 0.25s ease;
+      transition: border-color 0.15s ease, transform 0.15s ease;
     }
 
-    .tele-card::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--accent, var(--cyan)), transparent);
-      opacity: 0.45;
-      transition: opacity 0.25s ease;
+    .metric-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
     }
 
-    .tele-card:hover {
-      transform: translateY(-4px);
-      border-color: var(--accent, var(--cyan));
-      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.4);
-    }
-
-    .tele-card:hover::after {
-      opacity: 1;
-    }
-
-    .tele-top {
+    .metric-card-top {
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
     }
 
-    .tele-icon-box {
-      display: grid;
-      place-items: center;
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
-      background: rgba(56, 189, 248, 0.1);
-      border: 1px solid rgba(56, 189, 248, 0.22);
-      color: var(--accent, var(--cyan));
-      font-size: 15px;
+    .metric-card-top i {
+      color: var(--text-muted);
+      font-size: 14px;
     }
 
-    .tele-main-val {
-      font-family: var(--font-mono);
-      font-size: clamp(22px, 1.9vw, 29px);
-      font-weight: 700;
-      color: #fff;
+    .metric-number {
       margin-top: 12px;
-      line-height: 1.1;
+      font-family: var(--font-mono);
+      font-size: clamp(20px, 1.8vw, 26px);
+      font-weight: 600;
+      color: var(--text-primary);
     }
 
-    .tele-sub {
-      font-size: 11.5px;
-      color: var(--text-dim);
+    .metric-unit {
+      margin-left: 4px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .metric-desc {
       margin-top: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
     }
 
-    /* GATEWAY INFO STRIP */
-    .gateway-strip {
+    /* GATEWAY BAR */
+    .gateway-bar {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
+      gap: 12px;
       margin-top: 16px;
       padding: 14px 18px;
-      border-radius: 14px;
-      background: rgba(10, 19, 34, 0.65);
+      border-radius: 12px;
+      background-color: var(--surface);
       border: 1px solid var(--border);
+      font-size: 13px;
     }
 
-    .gw-item {
+    .gw-cell {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 10px;
-      border-right: 1px solid rgba(148, 163, 184, 0.12);
-      font-size: 13px;
+      padding: 0 12px;
+      border-right: 1px solid var(--border);
     }
-    .gw-item:last-child { border-right: none; }
-    .gw-item span { color: var(--text-dim); display: flex; align-items: center; gap: 8px; }
-    .gw-item span i { color: var(--cyan); }
-    .gw-item strong { font-family: var(--font-mono); font-size: 12.5px; color: #f8fafc; }
+    .gw-cell:last-child { border-right: none; }
+    .gw-cell span { color: var(--text-secondary); }
+    .gw-cell strong { font-family: var(--font-mono); font-size: 12.5px; color: var(--text-primary); }
 
-    /* CUSTOM MARKER */
+    /* UAV MARKER */
     .uav-marker { background: transparent; border: none; }
     .uav-icon-wrap {
       display: grid;
       place-items: center;
-      width: 36px;
-      height: 36px;
-      transition: transform 0.3s ease;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: rgba(15, 23, 42, 0.85);
+      border: 2px solid #3b82f6;
+      transition: transform 0.25s ease;
     }
     .uav-icon-wrap i {
-      color: #38bdf8;
-      font-size: 26px;
-      filter: drop-shadow(0 0 8px #38bdf8);
+      color: #60a5fa;
+      font-size: 15px;
     }
 
-    /* MODAL POPUP */
+    /* MODAL */
     .modal-backdrop {
       position: fixed;
       inset: 0;
       z-index: 2000;
       display: grid;
       place-items: center;
-      padding: 18px;
-      background: rgba(2, 6, 15, 0.78);
-      backdrop-filter: blur(12px);
+      padding: 16px;
+      background-color: rgba(2, 6, 23, 0.75);
       opacity: 0;
       visibility: hidden;
-      transition: 0.2s ease;
+      transition: opacity 0.15s ease;
     }
 
     .modal-backdrop.is-open { opacity: 1; visibility: visible; }
 
-    .detail-modal {
-      width: min(440px, 100%);
-      padding: 24px;
-      border-radius: 20px;
-      background: linear-gradient(155deg, rgba(16, 33, 58, 0.98), rgba(6, 14, 28, 0.99));
-      border: 1px solid var(--border-active);
-      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.65);
+    .modal-box {
+      width: min(420px, 100%);
+      padding: 22px;
+      border-radius: 14px;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
     }
 
-    .modal-head { display: flex; justify-content: space-between; align-items: center; }
-    .modal-head h2 { font-size: 19px; color: #fff; }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h3 { font-size: 16px; font-weight: 600; }
+
     .modal-close {
-      width: 34px; height: 34px; border-radius: 9px;
-      border: 1px solid rgba(148, 163, 184, 0.25);
-      background: rgba(255, 255, 255, 0.05); color: #cbd5e1;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-secondary);
       cursor: pointer;
     }
-    .modal-value-wrap {
-      margin: 18px 0 14px; padding: 16px; border-radius: 14px;
-      background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25);
+
+    .modal-value-box {
+      margin: 16px 0 12px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      background-color: var(--surface-alt);
+      border: 1px solid var(--border);
     }
-    .modal-value-label { font-size: 11px; letter-spacing: 1.5px; color: var(--text-dim); text-transform: uppercase; }
-    .modal-value { font-family: var(--font-mono); font-size: 30px; font-weight: 700; color: #fff; margin-top: 4px; }
-    .modal-description { font-size: 14px; line-height: 1.6; color: #94a3b8; }
+
+    .modal-value-box span { font-size: 12px; color: var(--text-secondary); }
+    .modal-value-box div {
+      margin-top: 4px;
+      font-family: var(--font-mono);
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .modal-text {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
 
     /* RESPONSIVE */
     @media (max-width: 1280px) {
-      .telemetry-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     @media (max-width: 960px) {
-      .hud-grid { grid-template-columns: 1fr; }
-      .map-wrapper { min-height: 420px; }
-      .gateway-strip { grid-template-columns: 1fr; gap: 10px; }
-      .gw-item { border-right: none; border-bottom: 1px solid rgba(148, 163, 184, 0.1); padding: 6px 0; }
-      .gw-item:last-child { border-bottom: none; }
+      .main-grid { grid-template-columns: 1fr; }
+      .map-wrapper { height: 420px; }
+      .gateway-bar { grid-template-columns: 1fr; gap: 8px; }
+      .gw-cell { border-right: none; border-bottom: 1px solid var(--border); padding: 6px 0; }
+      .gw-cell:last-child { border-bottom: none; }
     }
-    @media (max-width: 580px) {
-      .telemetry-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .horizon-wrapper { grid-template-columns: 120px 1fr; }
-      .attitude-ball { width: 120px; height: 120px; }
+    @media (max-width: 560px) {
+      .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .attitude-layout { grid-template-columns: 112px 1fr; }
+      .horizon-circle { width: 112px; height: 112px; }
     }
   </style>
 </head>
@@ -776,335 +655,322 @@
 <body>
   <header class="topbar">
     <div class="brand">
-      <div class="brand-logo"><i class="fa-solid fa-crosshairs"></i></div>
-      <div class="brand-info">
-        <h1>UAV GROUND STATION</h1>
-        <span>TACTICAL TELEMETRY &amp; FLIGHT HUD</span>
+      <div class="brand-icon"><i class="fa-solid fa-paper-plane"></i></div>
+      <div class="brand-text">
+        <h1>UAV Ground Station</h1>
+        <p>Hệ thống giám sát hành trình &amp; cảm biến từ xa</p>
       </div>
     </div>
 
-    <div class="status-bar" aria-label="Trạng thái kết nối">
-      <div id="cloudStatus" class="status-pill status-bad">
-        <i class="fa-solid fa-server"></i> MQTT: ĐANG KẾT NỐI...
+    <div class="status-group" aria-label="Trạng thái kết nối">
+      <div id="cloudStatus" class="badge badge-bad">
+        <i class="fa-solid fa-server"></i> MQTT: Đang kết nối...
       </div>
-      <div id="gpsEspStatus" class="status-pill status-bad">
-        <i class="fa-solid fa-satellite-dish"></i> ESP32 GPS: OFFLINE
+      <div id="gpsEspStatus" class="badge badge-bad">
+        <i class="fa-solid fa-satellite-dish"></i> ESP32 GPS: Offline
       </div>
-      <div id="rxEspStatus" class="status-pill status-bad">
-        <i class="fa-solid fa-microchip"></i> ESP32 NHẬN: OFFLINE
+      <div id="rxEspStatus" class="badge badge-bad">
+        <i class="fa-solid fa-microchip"></i> ESP32 Nhận: Offline
       </div>
-      <div id="linkStatus" class="status-pill status-warn">
-        <i class="fa-solid fa-link"></i> LIÊN KẾT: CHƯA CÓ DỮ LIỆU
+      <div id="linkStatus" class="badge badge-warn">
+        <i class="fa-solid fa-link"></i> Liên kết: Chưa có dữ liệu
       </div>
     </div>
   </header>
 
   <main class="container">
-    <section class="hud-grid">
-      <!-- BẢN ĐỒ TACTICAL -->
-      <article class="glass-panel map-card">
-        <div class="panel-header">
-          <div class="panel-title-group">
+    <section class="main-grid">
+      <!-- BẢN ĐỒ -->
+      <article class="card">
+        <div class="card-header">
+          <div class="card-title">
             <i class="fa-solid fa-map-location-dot"></i>
-            <h2>Bản đồ định vị vệ tinh</h2>
+            <span>Bản đồ định vị GPS</span>
           </div>
 
-          <div class="map-controls">
-            <button id="toggleDarkMapBtn" class="btn-hud active" type="button" title="Chuyển chế độ bản đồ tối/sáng">
-              <i class="fa-solid fa-moon"></i> RADAR DARK
+          <div class="btn-group">
+            <button id="toggleDarkMapBtn" class="btn" type="button" title="Chuyển nền bản đồ sáng/tối">
+              <i class="fa-solid fa-circle-half-stroke"></i> Bản đồ tối
             </button>
-            <button id="centerUavBtn" class="btn-hud" type="button" title="Đưa UAV về giữa bản đồ">
-              <i class="fa-solid fa-location-crosshairs"></i> TÂM UAV
+            <button id="centerUavBtn" class="btn" type="button" title="Đưa UAV về giữa bản đồ">
+              <i class="fa-solid fa-location-crosshairs"></i> Về tâm
             </button>
-            <button id="clearPathBtn" class="btn-hud" type="button" title="Xóa vệt đường bay">
-              <i class="fa-solid fa-eraser"></i> XÓA VỆT
+            <button id="clearPathBtn" class="btn" type="button" title="Xóa vệt đường bay">
+              <i class="fa-solid fa-eraser"></i> Xóa đường bay
             </button>
           </div>
         </div>
 
-        <div class="map-wrapper dark-tiles" id="mapWrapper">
+        <div class="map-wrapper" id="mapWrapper">
           <div id="map"></div>
 
-          <div class="map-overlay-top">
-            <div class="hud-chip">
-              <span class="live-dot"></span> LIVE TELEMETRY STREAM
+          <div class="map-pill-overlay">
+            <div class="map-chip">
+              <span class="dot-live"></span> Trực tuyến
             </div>
-            <div class="hud-chip">
-              <i class="fa-solid fa-route" style="color: var(--cyan)"></i>
-              QUÃNG ĐƯỜNG: <strong id="distanceText">0 m</strong>
+            <div class="map-chip">
+              Quãng đường: <strong id="distanceText" style="font-family: var(--font-mono)">0 m</strong>
             </div>
           </div>
         </div>
 
-        <div class="map-footer">
-          <div class="footer-stats">
-            <span><i class="fa-regular fa-clock" style="color: var(--cyan)"></i> Cập nhật: <strong id="lastUpdate">--:--:--</strong></span>
-            <span><i class="fa-solid fa-satellite" style="color: var(--cyan)"></i> Trạng thái: <strong id="fixText" style="color: #fbbf24">CHƯA CÓ DỮ LIỆU</strong></span>
+        <div class="card-footer">
+          <div class="footer-meta">
+            <span>Cập nhật: <strong id="lastUpdate">--:--:--</strong></span>
+            <span>Trạng thái GPS: <strong id="fixText" style="color: #fbbf24">Chưa có dữ liệu</strong></span>
           </div>
-          <span style="font-size: 11.5px; color: var(--text-muted)">ATGM336H · BMP280 · MPU6050</span>
+          <span>ATGM336H · BMP280 · MPU6050</span>
         </div>
       </article>
 
-      <!-- CỘT PHẢI: CHÂN TRỜI ẢO (ATTITUDE) + TỌA ĐỘ + TÍN HIỆU -->
-      <aside class="side-stack">
-        <!-- CHÂN TRỜI ẢO PFD -->
-        <section class="glass-panel horizon-panel">
-          <div class="panel-title-group">
-            <i class="fa-solid fa-compass-drafting"></i>
-            <h2>Chân trời ảo (IMU Attitude)</h2>
+      <!-- CỘT THÔNG SỐ PHỤ -->
+      <aside class="side-column">
+        <!-- CHÂN TRỜI ẢO -->
+        <section class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa-solid fa-compass-drafting"></i>
+              <span>Cân bằng &amp; Góc nghiêng (IMU)</span>
+            </div>
           </div>
 
-          <div class="horizon-wrapper">
-            <div class="attitude-ball" title="Mô phỏng góc nghiêng Roll & Pitch theo thời gian thực">
-              <div class="horizon-sky-ground" id="horizonBall">
-                <div class="horizon-pitch-ladder">
-                  <div class="ladder-line short"></div>
-                  <div class="ladder-line"></div>
-                  <div class="ladder-line short"></div>
-                  <div style="height: 18px"></div>
-                  <div class="ladder-line short"></div>
-                  <div class="ladder-line"></div>
-                  <div class="ladder-line short"></div>
+          <div class="card-body">
+            <div class="attitude-layout">
+              <div class="horizon-circle" title="Mô phỏng góc nghiêng Roll & Pitch">
+                <div class="horizon-plane" id="horizonBall">
+                  <div class="horizon-marks">
+                    <div class="h-line sm"></div>
+                    <div class="h-line"></div>
+                    <div class="h-line sm"></div>
+                    <div style="height: 16px"></div>
+                    <div class="h-line sm"></div>
+                    <div class="h-line"></div>
+                    <div class="h-line sm"></div>
+                  </div>
                 </div>
-              </div>
-              <div class="aircraft-reticle">
-                <div class="reticle-wing"></div>
-              </div>
-            </div>
-
-            <div class="attitude-readouts">
-              <div
-                class="att-box"
-                role="button"
-                tabindex="0"
-                data-popup-title="Góc Roll (Nghiêng ngang)"
-                data-popup-description="Góc nghiêng cánh trái/phải của UAV đo từ cảm biến MPU6050 qua bộ lọc bù."
-              >
-                <div class="att-box-label">
-                  <span>ROLL (NGHIÊNG)</span>
-                  <i class="fa-solid fa-rotate" style="color: var(--cyan)"></i>
+                <div class="center-reticle">
+                  <div class="reticle-bar"></div>
                 </div>
-                <div class="att-box-val"><span id="rollSide">--</span><span class="tile-unit">°</span></div>
               </div>
 
-              <div
-                class="att-box"
-                role="button"
-                tabindex="0"
-                data-popup-title="Góc Pitch (Chúi / Ngẩng)"
-                data-popup-description="Góc chúc mũi xuống hoặc ngẩng mũi lên của UAV đo từ cảm biến MPU6050."
-              >
-                <div class="att-box-label">
-                  <span>PITCH (CHÚI/NGẨNG)</span>
-                  <i class="fa-solid fa-arrows-up-down" style="color: var(--cyan)"></i>
+              <div class="attitude-stats">
+                <div
+                  class="stat-row-box"
+                  role="button"
+                  tabindex="0"
+                  data-popup-title="Góc Roll (Nghiêng ngang)"
+                  data-popup-description="Góc nghiêng cánh trái/phải của UAV đo từ cảm biến MPU6050."
+                >
+                  <span>Góc nghiêng (Roll)</span>
+                  <strong><span id="rollSide">--</span>°</strong>
                 </div>
-                <div class="att-box-val"><span id="pitchSide">--</span><span class="tile-unit">°</span></div>
+
+                <div
+                  class="stat-row-box"
+                  role="button"
+                  tabindex="0"
+                  data-popup-title="Góc Pitch (Chúi / Ngẩng)"
+                  data-popup-description="Góc chúc mũi xuống hoặc ngẩng mũi lên của UAV đo từ cảm biến MPU6050."
+                >
+                  <span>Góc chúi/ngẩng (Pitch)</span>
+                  <strong><span id="pitchSide">--</span>°</strong>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
         <!-- TỌA ĐỘ GPS -->
-        <section class="glass-panel side-card">
-          <div class="panel-title-group">
-            <i class="fa-solid fa-location-dot"></i>
-            <h2>Tọa độ định vị</h2>
+        <section class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa-solid fa-location-dot"></i>
+              <span>Tọa độ hiện tại</span>
+            </div>
           </div>
 
-          <div class="mini-grid">
-            <button
-              class="data-tile"
-              type="button"
-              data-popup-title="Vĩ độ GPS (Latitude)"
-              data-popup-description="Vĩ độ địa lý do module ATGM336H cung cấp theo độ thập phân."
-            >
-              <div class="tile-header">
-                <span class="tile-label">LATITUDE</span>
-                <i class="fa-solid fa-arrow-up tile-icon"></i>
-              </div>
-              <span class="tile-value" id="lat">--.------</span>
-            </button>
+          <div class="card-body">
+            <div class="two-col-grid">
+              <button
+                class="sub-tile"
+                type="button"
+                data-popup-title="Vĩ độ GPS (Latitude)"
+                data-popup-description="Vĩ độ địa lý do module ATGM336H cung cấp theo độ thập phân."
+              >
+                <span class="sub-tile-label">Vĩ độ (Lat)</span>
+                <span class="sub-tile-val" id="lat">--.------</span>
+              </button>
 
-            <button
-              class="data-tile"
-              type="button"
-              data-popup-title="Kinh độ GPS (Longitude)"
-              data-popup-description="Kinh độ địa lý do module ATGM336H cung cấp theo độ thập phân."
-            >
-              <div class="tile-header">
-                <span class="tile-label">LONGITUDE</span>
-                <i class="fa-solid fa-arrow-right tile-icon"></i>
-              </div>
-              <span class="tile-value" id="lon">--.------</span>
-            </button>
-          </div>
+              <button
+                class="sub-tile"
+                type="button"
+                data-popup-title="Kinh độ GPS (Longitude)"
+                data-popup-description="Kinh độ địa lý do module ATGM336H cung cấp theo độ thập phân."
+              >
+                <span class="sub-tile-label">Kinh độ (Lon)</span>
+                <span class="sub-tile-val" id="lon">--.------</span>
+              </button>
+            </div>
 
-          <div class="fix-banner">
-            <span style="color: var(--text-dim)"><i class="fa-solid fa-crosshairs" style="color: var(--cyan)"></i> TRẠNG THÁI FIX</span>
-            <strong id="fixTextSide" style="color: #fbbf24">ĐANG CHỜ</strong>
+            <div class="fix-row">
+              <span>Định vị vệ tinh</span>
+              <strong id="fixTextSide" style="color: #fbbf24">Đang chờ</strong>
+            </div>
           </div>
         </section>
 
         <!-- CHẤT LƯỢNG TÍN HIỆU -->
-        <section class="glass-panel side-card">
-          <div class="panel-title-group">
-            <i class="fa-solid fa-satellite-dish"></i>
-            <h2>Chất lượng vệ tinh</h2>
+        <section class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa-solid fa-satellite"></i>
+              <span>Chất lượng tín hiệu GPS</span>
+            </div>
           </div>
 
-          <div class="mini-grid">
-            <button
-              class="data-tile"
-              type="button"
-              data-popup-title="Số vệ tinh GPS"
-              data-popup-description="Số lượng vệ tinh mà module ATGM336H đang bắt được để tính tọa độ."
-            >
-              <div class="tile-header">
-                <span class="tile-label">VỆ TINH</span>
-                <i class="fa-solid fa-satellite tile-icon"></i>
-              </div>
-              <span class="tile-value" id="sat">--</span>
-            </button>
+          <div class="card-body">
+            <div class="two-col-grid">
+              <button
+                class="sub-tile"
+                type="button"
+                data-popup-title="Số vệ tinh GPS"
+                data-popup-description="Số lượng vệ tinh mà module ATGM336H đang bắt được để tính tọa độ."
+              >
+                <span class="sub-tile-label">Số vệ tinh</span>
+                <span class="sub-tile-val" id="sat">--</span>
+              </button>
 
-            <button
-              class="data-tile"
-              type="button"
-              data-popup-title="Chỉ số HDOP"
-              data-popup-description="Chỉ số suy giảm độ chính xác ngang. Giá trị càng nhỏ (dưới 2.0) thì định vị càng chính xác."
-            >
-              <div class="tile-header">
-                <span class="tile-label">HDOP</span>
-                <i class="fa-solid fa-bullseye tile-icon"></i>
-              </div>
-              <span class="tile-value" id="hdop">--</span>
-            </button>
+              <button
+                class="sub-tile"
+                type="button"
+                data-popup-title="Chỉ số HDOP"
+                data-popup-description="Chỉ số suy giảm độ chính xác ngang. Giá trị càng nhỏ (dưới 2.0) thì định vị càng chuẩn."
+              >
+                <span class="sub-tile-label">HDOP</span>
+                <span class="sub-tile-val" id="hdop">--</span>
+              </button>
+            </div>
           </div>
         </section>
       </aside>
     </section>
 
     <!-- DẢI THÔNG SỐ CHUYẾN BAY -->
-    <div class="section-bar">
-      <h3>Thông số chuyến bay</h3>
-      <span>Nhấn vào từng thẻ để xem chi tiết thông số</span>
+    <div class="section-header">
+      <h2>Thông số chuyến bay</h2>
+      <p>Nhấn vào từng thẻ để xem giải thích chi tiết</p>
     </div>
 
-    <section class="telemetry-grid">
+    <section class="metrics-grid">
       <button
-        class="tele-card"
+        class="metric-card"
         type="button"
-        style="--accent: #38bdf8"
-        data-popup-title="Độ cao khí áp (BMP280 / GPS)"
-        data-popup-description="Độ cao tương đối tính từ điểm cất cánh đo bằng cảm biến áp suất BMP280."
+        data-popup-title="Độ cao (Altitude)"
+        data-popup-description="Độ cao tương đối tính từ điểm khởi hành đo bằng cảm biến áp suất BMP280."
       >
-        <div class="tele-top">
-          <span class="tile-label">ALTITUDE</span>
-          <span class="tele-icon-box"><i class="fa-solid fa-mountain-sun"></i></span>
+        <div class="metric-card-top">
+          <span>Độ cao</span>
+          <i class="fa-solid fa-mountain"></i>
         </div>
         <div>
-          <div class="tele-main-val"><span id="alt">--.-</span><span class="tile-unit">m</span></div>
-          <div class="tele-sub">Độ cao tương đối</div>
+          <div class="metric-number"><span id="alt">--.-</span><span class="metric-unit">m</span></div>
+          <div class="metric-desc">Cảm biến BMP280</div>
         </div>
       </button>
 
       <button
-        class="tele-card"
+        class="metric-card"
         type="button"
-        style="--accent: #22d3ee"
         data-popup-title="Tốc độ mặt đất"
         data-popup-description="Vận tốc di chuyển theo phương ngang đo từ tín hiệu GPS."
       >
-        <div class="tele-top">
-          <span class="tile-label">SPEED</span>
-          <span class="tele-icon-box"><i class="fa-solid fa-gauge-high"></i></span>
+        <div class="metric-card-top">
+          <span>Tốc độ</span>
+          <i class="fa-solid fa-gauge"></i>
         </div>
         <div>
-          <div class="tele-main-val"><span id="speed">--.-</span><span class="tile-unit">km/h</span></div>
-          <div class="tele-sub">Tốc độ mặt đất</div>
+          <div class="metric-number"><span id="speed">--.-</span><span class="metric-unit">km/h</span></div>
+          <div class="metric-desc">Vận tốc mặt đất</div>
         </div>
       </button>
 
       <button
-        class="tele-card"
+        class="metric-card"
         type="button"
-        style="--accent: #818cf8"
         data-popup-title="Hướng di chuyển (Course)"
         data-popup-description="Góc hướng chuyển động so với hướng Bắc địa lý (0° - 360°)."
       >
-        <div class="tele-top">
-          <span class="tile-label">COURSE</span>
-          <span class="tele-icon-box"><i class="fa-solid fa-compass"></i></span>
+        <div class="metric-card-top">
+          <span>Hướng bay</span>
+          <i class="fa-solid fa-compass"></i>
         </div>
         <div>
-          <div class="tele-main-val"><span id="course">---</span><span class="tile-unit">°</span></div>
-          <div class="tele-sub">Hướng bay</div>
+          <div class="metric-number"><span id="course">---</span><span class="metric-unit">°</span></div>
+          <div class="metric-desc">Góc phương vị</div>
         </div>
       </button>
 
       <button
-        class="tele-card"
+        class="metric-card"
         type="button"
-        style="--accent: #10b981"
-        data-popup-title="Điện áp pin UAV"
+        data-popup-title="Điện áp pin"
         data-popup-description="Điện áp nguồn cấp cho hệ thống UAV đo qua bộ chia áp ADC."
       >
-        <div class="tele-top">
-          <span class="tile-label">BATTERY</span>
-          <span class="tele-icon-box"><i class="fa-solid fa-battery-three-quarters"></i></span>
+        <div class="metric-card-top">
+          <span>Điện áp pin</span>
+          <i class="fa-solid fa-battery-three-quarters"></i>
         </div>
         <div>
-          <div class="tele-main-val"><span id="bat">--.--</span><span class="tile-unit">V</span></div>
-          <div class="tele-sub">Điện áp pin</div>
+          <div class="metric-number"><span id="bat">--.--</span><span class="metric-unit">V</span></div>
+          <div class="metric-desc">Nguồn hệ thống</div>
         </div>
       </button>
 
       <button
-        class="tele-card"
+        class="metric-card"
         type="button"
-        style="--accent: #f59e0b"
         data-popup-title="Góc nghiêng Roll"
         data-popup-description="Góc nghiêng lắc ngang của thân máy bay đo từ MPU6050."
       >
-        <div class="tele-top">
-          <span class="tile-label">ROLL</span>
-          <span class="tele-icon-box"><i class="fa-solid fa-rotate"></i></span>
+        <div class="metric-card-top">
+          <span>Roll</span>
+          <i class="fa-solid fa-rotate"></i>
         </div>
         <div>
-          <div class="tele-main-val"><span id="roll">--</span><span class="tile-unit">°</span></div>
-          <div class="tele-sub">Nghiêng ngang</div>
+          <div class="metric-number"><span id="roll">--</span><span class="metric-unit">°</span></div>
+          <div class="metric-desc">Nghiêng trái / phải</div>
         </div>
       </button>
 
       <button
-        class="tele-card"
+        class="metric-card"
         type="button"
-        style="--accent: #fb7185"
         data-popup-title="Góc chúi Pitch"
         data-popup-description="Góc chúc/ngẩng mũi máy bay đo từ MPU6050."
       >
-        <div class="tele-top">
-          <span class="tile-label">PITCH</span>
-          <span class="tele-icon-box"><i class="fa-solid fa-arrow-up-long"></i></span>
+        <div class="metric-card-top">
+          <span>Pitch</span>
+          <i class="fa-solid fa-arrows-up-down"></i>
         </div>
         <div>
-          <div class="tele-main-val"><span id="pitch">--</span><span class="tile-unit">°</span></div>
-          <div class="tele-sub">Chúi / Ngẩng</div>
+          <div class="metric-number"><span id="pitch">--</span><span class="metric-unit">°</span></div>
+          <div class="metric-desc">Chúc / ngẩng mũi</div>
         </div>
       </button>
     </section>
 
-    <!-- THANH TRẠNG THÁI GATEWAY -->
-    <section class="gateway-strip">
-      <div class="gw-item">
-        <span><i class="fa-solid fa-check-double"></i> Xác nhận trạm thu</span>
-        <strong id="rxText">CHƯA XÁC NHẬN</strong>
+    <!-- THANH TRẠNG THÁI TRUYỀN TIN -->
+    <section class="gateway-bar">
+      <div class="gw-cell">
+        <span>Xác nhận trạm thu</span>
+        <strong id="rxText">Chưa xác nhận</strong>
       </div>
-      <div class="gw-item">
-        <span><i class="fa-solid fa-box"></i> Số thứ tự gói tin</span>
+      <div class="gw-cell">
+        <span>Số thứ tự gói tin</span>
         <strong id="gpsTime">--</strong>
       </div>
-      <div class="gw-item">
-        <span><i class="fa-solid fa-tower-broadcast"></i> Giao thức truyền</span>
+      <div class="gw-cell">
+        <span>Giao thức truyền</span>
         <strong>ESP32 → MQTT WSS</strong>
       </div>
     </section>
@@ -1112,25 +978,22 @@
 
   <!-- MODAL CHI TIẾT -->
   <div id="metricModal" class="modal-backdrop" aria-hidden="true">
-    <section class="detail-modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal-head">
-        <h2 id="modalTitle">Thông tin dữ liệu</h2>
+    <section class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <h3 id="modalTitle">Thông tin dữ liệu</h3>
         <button id="modalClose" class="modal-close" type="button" aria-label="Đóng">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
-      <div class="modal-value-wrap">
-        <div class="modal-value-label">Giá trị hiện tại</div>
-        <div id="modalValue" class="modal-value">--</div>
+      <div class="modal-value-box">
+        <span>Giá trị hiện tại</span>
+        <div id="modalValue">--</div>
       </div>
-      <p id="modalDescription" class="modal-description"></p>
+      <p id="modalDescription" class="modal-text"></p>
     </section>
   </div>
 
   <script>
-    // ============================================================
-    // 1. MQTT CONFIGURATION (GIỮ NGUYÊN TOPIC GỐC)
-    // ============================================================
     const CONFIG = {
       brokerUrl: 'wss://broker.emqx.io:8084/mqtt',
       topics: {
@@ -1145,9 +1008,6 @@
       maxPathPoints: 1000
     };
 
-    // ============================================================
-    // 2. MAP INITIALIZATION & CONTROLS
-    // ============================================================
     const DEFAULT_POSITION = [21.0285, 105.8542];
     const map = L.map('map', { zoomControl: true }).setView(DEFAULT_POSITION, 15);
 
@@ -1157,27 +1017,24 @@
     }).addTo(map);
 
     const uavIcon = L.divIcon({
-      html: '<div class="uav-icon-wrap" id="uavRotator"><i class="fa-solid fa-plane-up"></i></div>',
-      iconSize: [36, 36],
-      iconAnchor: [18, 18],
+      html: '<div class="uav-icon-wrap" id="uavRotator"><i class="fa-solid fa-location-arrow" style="transform: rotate(-45deg);"></i></div>',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
       className: 'uav-marker'
     });
 
     const marker = L.marker(DEFAULT_POSITION, { icon: uavIcon }).addTo(map);
 
     const pathLine = L.polyline([], {
-      color: '#38bdf8',
+      color: '#3b82f6',
       weight: 4,
-      opacity: 0.9
+      opacity: 0.85
     }).addTo(map);
 
     let firstFix = true;
     let lastPosition = null;
     let totalDistanceMeters = 0;
 
-    // ============================================================
-    // 3. RUNTIME STATE & HELPERS
-    // ============================================================
     const el = (id) => document.getElementById(id);
 
     const lastSeen = { gps: 0, receiver: 0, ack: 0 };
@@ -1188,7 +1045,7 @@
     let gpsFixValid = false;
 
     function setBadge(node, mode, html) {
-      node.className = `status-pill ${mode}`;
+      node.className = `badge ${mode}`;
       node.innerHTML = html;
     }
 
@@ -1222,45 +1079,45 @@
 
       setBadge(
         el('gpsEspStatus'),
-        gpsOnline ? 'status-ok' : 'status-bad',
+        gpsOnline ? 'badge-ok' : 'badge-bad',
         gpsOnline
-          ? '<i class="fa-solid fa-satellite-dish"></i> ESP32 GPS: ONLINE'
-          : '<i class="fa-solid fa-triangle-exclamation"></i> ESP32 GPS: OFFLINE'
+          ? '<i class="fa-solid fa-satellite-dish"></i> ESP32 GPS: Online'
+          : '<i class="fa-solid fa-satellite-dish"></i> ESP32 GPS: Offline'
       );
 
       setBadge(
         el('rxEspStatus'),
-        receiverOnline ? 'status-ok' : 'status-bad',
+        receiverOnline ? 'badge-ok' : 'badge-bad',
         receiverOnline
-          ? '<i class="fa-solid fa-microchip"></i> ESP32 NHẬN: ONLINE'
-          : '<i class="fa-solid fa-triangle-exclamation"></i> ESP32 NHẬN: OFFLINE'
+          ? '<i class="fa-solid fa-microchip"></i> ESP32 Nhận: Online'
+          : '<i class="fa-solid fa-microchip"></i> ESP32 Nhận: Offline'
       );
 
       if (linkOnline) {
         const seqLabel = lastAckSeq !== null ? ` #${lastAckSeq}` : '';
-        setBadge(el('linkStatus'), 'status-ok', `<i class="fa-solid fa-link"></i> LIÊN KẾT: ĐÃ NHẬN${seqLabel}`);
-        el('rxText').textContent = lastAckSeq !== null ? `ĐÃ NHẬN GÓI #${lastAckSeq}` : 'ĐÃ NHẬN GPS';
+        setBadge(el('linkStatus'), 'badge-ok', `<i class="fa-solid fa-link"></i> Liên kết: Đã nhận${seqLabel}`);
+        el('rxText').textContent = lastAckSeq !== null ? `Đã nhận gói #${lastAckSeq}` : 'Đã nhận GPS';
       } else {
-        let reason = 'CHƯA XÁC NHẬN';
-        if (!receiverOnline) reason = 'ESP32 #2 OFFLINE';
-        else if (!ackFresh) reason = 'CHƯA CÓ ACK MỚI';
-        else if (!seqMatches) reason = 'ACK KHÔNG KHỚP SEQ';
+        let reason = 'Chưa xác nhận';
+        if (!receiverOnline) reason = 'ESP32 #2 Offline';
+        else if (!ackFresh) reason = 'Chưa có ACK mới';
+        else if (!seqMatches) reason = 'ACK không khớp SEQ';
 
-        setBadge(el('linkStatus'), 'status-warn', `<i class="fa-solid fa-link-slash"></i> LIÊN KẾT: ${reason}`);
+        setBadge(el('linkStatus'), 'badge-warn', `<i class="fa-solid fa-link-slash"></i> Liên kết: ${reason}`);
         el('rxText').textContent = reason;
       }
 
       if (!lastGpsPayload) {
-        el('fixText').textContent = 'CHƯA CÓ DỮ LIỆU';
+        el('fixText').textContent = 'Chưa có dữ liệu';
         el('fixText').style.color = '#fbbf24';
       } else if (!gpsOnline) {
-        el('fixText').textContent = 'MẤT DỮ LIỆU GPS';
-        el('fixText').style.color = '#fb7185';
+        el('fixText').textContent = 'Mất dữ liệu GPS';
+        el('fixText').style.color = '#f87171';
       } else if (gpsFixValid) {
-        el('fixText').textContent = 'CÓ FIX VỆ TINH';
+        el('fixText').textContent = 'Đã chốt vệ tinh (Fix)';
         el('fixText').style.color = '#34d399';
       } else {
-        el('fixText').textContent = 'CHƯA CÓ FIX';
+        el('fixText').textContent = 'Đang dò vệ tinh';
         el('fixText').style.color = '#fbbf24';
       }
 
@@ -1291,7 +1148,6 @@
       return Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && !(lat === 0 && lon === 0);
     }
 
-    // Tính khoảng cách Haversine (mét)
     function calcDistance(lat1, lon1, lat2, lon2) {
       const R = 6371000;
       const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -1302,9 +1158,6 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    // ============================================================
-    // 4. UPDATE TELEMETRY & ARTIFICIAL HORIZON
-    // ============================================================
     function updateGpsData(payload) {
       const data = payload && typeof payload.gps === 'object' ? payload.gps : payload;
 
@@ -1342,7 +1195,6 @@
       displayNumber('hdop', hdop, 1);
       displayNumber('bat', battery, 2);
 
-      // Cập nhật cả 2 nơi hiển thị Roll & Pitch + Chân trời ảo
       displayNumber('roll', roll, 1);
       displayNumber('pitch', pitch, 1);
       displayNumber('rollSide', roll, 1);
@@ -1352,10 +1204,9 @@
       const safePitch = Number.isFinite(pitch) ? Math.max(-45, Math.min(45, pitch)) : 0;
       const horizonBall = el('horizonBall');
       if (horizonBall) {
-        horizonBall.style.transform = `rotate(${-safeRoll}deg) translateY(${safePitch * 1.4}px)`;
+        horizonBall.style.transform = `rotate(${-safeRoll}deg) translateY(${safePitch * 1.2}px)`;
       }
 
-      // Xoay icon máy bay theo hướng di chuyển (Course)
       const rotator = document.getElementById('uavRotator');
       if (rotator && Number.isFinite(course)) {
         rotator.style.transform = `rotate(${course}deg)`;
@@ -1404,11 +1255,8 @@
       updateConnectionUI();
     }
 
-    // ============================================================
-    // 5. MQTT BROKER CONNECTION
-    // ============================================================
     const cloudBadge = el('cloudStatus');
-    const clientId = 'uav_hud_' + Math.random().toString(16).slice(2, 10);
+    const clientId = 'uav_gs_' + Math.random().toString(16).slice(2, 10);
 
     const client = mqtt.connect(CONFIG.brokerUrl, {
       clientId,
@@ -1419,7 +1267,7 @@
     });
 
     client.on('connect', () => {
-      setBadge(cloudBadge, 'status-ok', '<i class="fa-solid fa-server"></i> MQTT: ĐÃ KẾT NỐI');
+      setBadge(cloudBadge, 'badge-ok', '<i class="fa-solid fa-server"></i> MQTT: Đã kết nối');
       client.subscribe([
         CONFIG.topics.gps,
         CONFIG.topics.gpsStatus,
@@ -1429,15 +1277,15 @@
     });
 
     client.on('reconnect', () => {
-      setBadge(cloudBadge, 'status-warn', '<i class="fa-solid fa-rotate"></i> MQTT: KẾT NỐI LẠI...');
+      setBadge(cloudBadge, 'badge-warn', '<i class="fa-solid fa-rotate"></i> MQTT: Đang kết nối lại');
     });
 
     client.on('close', () => {
-      setBadge(cloudBadge, 'status-bad', '<i class="fa-solid fa-server"></i> MQTT: OFFLINE');
+      setBadge(cloudBadge, 'badge-bad', '<i class="fa-solid fa-server"></i> MQTT: Offline');
     });
 
     client.on('error', () => {
-      setBadge(cloudBadge, 'status-bad', '<i class="fa-solid fa-triangle-exclamation"></i> MQTT: LỖI MẠNG');
+      setBadge(cloudBadge, 'badge-bad', '<i class="fa-solid fa-triangle-exclamation"></i> MQTT: Lỗi kết nối');
     });
 
     client.on('message', (topic, message, packet) => {
@@ -1499,9 +1347,6 @@
 
     setInterval(updateConnectionUI, 1000);
 
-    // ============================================================
-    // 6. INTERACTIVE BUTTONS & MODAL
-    // ============================================================
     el('clearPathBtn').addEventListener('click', () => {
       pathLine.setLatLngs([]);
       lastPosition = null;
@@ -1515,7 +1360,7 @@
 
     el('toggleDarkMapBtn').addEventListener('click', function () {
       const wrapper = el('mapWrapper');
-      wrapper.classList.toggle('dark-tiles');
+      wrapper.classList.toggle('muted-dark-map');
       this.classList.toggle('active');
     });
 
@@ -1527,7 +1372,7 @@
 
     document.querySelectorAll('[data-popup-title]').forEach((card) => {
       card.addEventListener('click', () => {
-        const valNode = card.querySelector('.tele-main-val, .tile-value, .att-box-val');
+        const valNode = card.querySelector('.metric-number, .sub-tile-val, strong');
         modalTitle.textContent = card.dataset.popupTitle;
         modalValue.textContent = valNode ? valNode.innerText.replace(/\s+/g, ' ').trim() : '--';
         modalDescription.textContent = card.dataset.popupDescription || '';
