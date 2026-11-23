@@ -36,7 +36,11 @@
       --font-mono: 'JetBrains Mono', monospace;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       min-height: 100vh;
@@ -217,7 +221,6 @@
       z-index: 1;
     }
 
-    /* DARK MAP */
     .muted-dark-map .leaflet-tile-pane {
       filter: invert(90%) hue-rotate(180deg) brightness(95%) contrast(90%) saturate(70%);
     }
@@ -312,7 +315,15 @@
       height: 240%;
       left: -70%;
       top: -70%;
-      background: linear-gradient(to bottom, #0369a1 0%, #38bdf8 49.4%, #ffffff 49.4%, #ffffff 50.6%, #92400e 50.6%, #451a03 100%);
+      background: linear-gradient(
+        to bottom,
+        #0369a1 0%,
+        #38bdf8 49.4%,
+        #ffffff 49.4%,
+        #ffffff 50.6%,
+        #92400e 50.6%,
+        #451a03 100%
+      );
       transition: transform 0.15s ease-out;
     }
 
@@ -327,8 +338,15 @@
       opacity: 0.8;
     }
 
-    .h-line { width: 28px; height: 1.5px; background: #fff; }
-    .h-line.sm { width: 16px; }
+    .h-line {
+      width: 28px;
+      height: 1.5px;
+      background: #fff;
+    }
+
+    .h-line.sm {
+      width: 16px;
+    }
 
     .center-reticle {
       position: absolute;
@@ -445,7 +463,9 @@
       font-size: 12.5px;
     }
 
-    .fix-row span { color: var(--text-secondary); }
+    .fix-row span {
+      color: var(--text-secondary);
+    }
 
     /* TELEMETRY SECTION */
     .section-header {
@@ -549,8 +569,14 @@
       border-right: 1px solid var(--border);
     }
 
-    .gw-cell:last-child { border-right: none; }
-    .gw-cell span { color: var(--text-secondary); }
+    .gw-cell:last-child {
+      border-right: none;
+    }
+
+    .gw-cell span {
+      color: var(--text-secondary);
+    }
+
     .gw-cell strong {
       font-family: var(--font-mono);
       font-size: 12.5px;
@@ -704,6 +730,8 @@
 </head>
 
 <body>
+
+  <!-- TOPBAR -->
   <header class="topbar">
     <div class="brand">
       <div class="brand-icon">
@@ -736,10 +764,12 @@
   </header>
 
   <main class="container">
+
     <section class="main-grid">
 
       <!-- BẢN ĐỒ -->
       <article class="card">
+
         <div class="card-header">
           <div class="card-title">
             <i class="fa-solid fa-map-location-dot"></i>
@@ -747,17 +777,37 @@
           </div>
 
           <div class="btn-group">
-            <button id="toggleDarkMapBtn" class="btn" type="button" title="Chuyển nền bản đồ sáng/tối">
-              <i class="fa-solid fa-circle-half-stroke"></i> Bản đồ tối
+
+            <button
+              id="toggleDarkMapBtn"
+              class="btn"
+              type="button"
+              title="Chuyển nền bản đồ sáng/tối"
+            >
+              <i class="fa-solid fa-circle-half-stroke"></i>
+              Bản đồ tối
             </button>
 
-            <button id="centerUavBtn" class="btn" type="button" title="Đưa UAV về giữa bản đồ">
-              <i class="fa-solid fa-location-crosshairs"></i> Về tâm
+            <button
+              id="centerUavBtn"
+              class="btn"
+              type="button"
+              title="Đưa UAV về giữa bản đồ"
+            >
+              <i class="fa-solid fa-location-crosshairs"></i>
+              Về tâm
             </button>
 
-            <button id="clearPathBtn" class="btn" type="button" title="Xóa vệt đường bay">
-              <i class="fa-solid fa-eraser"></i> Xóa đường bay
+            <button
+              id="clearPathBtn"
+              class="btn"
+              type="button"
+              title="Xóa vệt đường bay"
+            >
+              <i class="fa-solid fa-eraser"></i>
+              Xóa đường bay
             </button>
+
           </div>
         </div>
 
@@ -765,24 +815,41 @@
           <div id="map"></div>
 
           <div class="map-pill-overlay">
+
             <div class="map-chip">
-              <span class="dot-live"></span> Trực tuyến
+              <span class="dot-live"></span>
+              Trực tuyến
             </div>
 
             <div class="map-chip">
               Quãng đường:
-              <strong id="distanceText" style="font-family: var(--font-mono)">0 m</strong>
+              <strong
+                id="distanceText"
+                style="font-family: var(--font-mono)"
+              >0 m</strong>
             </div>
+
           </div>
         </div>
 
         <div class="card-footer">
+
           <div class="footer-meta">
-            <span>Cập nhật: <strong id="lastUpdate">--:--:--</strong></span>
-            <span>Trạng thái GPS: <strong id="fixText" style="color: #fbbf24">Chưa có dữ liệu</strong></span>
+            <span>
+              Cập nhật:
+              <strong id="lastUpdate">--:--:--</strong>
+            </span>
+
+            <span>
+              Trạng thái GPS:
+              <strong id="fixText" style="color: #fbbf24">
+                Chưa có dữ liệu
+              </strong>
+            </span>
           </div>
 
           <span>ATGM336H · BMP280 · MPU6500</span>
+
         </div>
       </article>
 
@@ -791,6 +858,7 @@
 
         <!-- CHÂN TRỜI ẢO -->
         <section class="card">
+
           <div class="card-header">
             <div class="card-title">
               <i class="fa-solid fa-compass-drafting"></i>
@@ -799,9 +867,15 @@
           </div>
 
           <div class="card-body">
+
             <div class="attitude-layout">
-              <div class="horizon-circle" title="Mô phỏng góc nghiêng Roll & Pitch">
+
+              <div
+                class="horizon-circle"
+                title="Mô phỏng góc nghiêng Roll & Pitch"
+              >
                 <div class="horizon-plane" id="horizonBall">
+
                   <div class="horizon-marks">
                     <div class="h-line sm"></div>
                     <div class="h-line"></div>
@@ -811,14 +885,17 @@
                     <div class="h-line"></div>
                     <div class="h-line sm"></div>
                   </div>
+
                 </div>
 
                 <div class="center-reticle">
                   <div class="reticle-bar"></div>
                 </div>
+
               </div>
 
               <div class="attitude-stats">
+
                 <div
                   class="stat-row-box"
                   role="button"
@@ -827,7 +904,9 @@
                   data-popup-description="Góc nghiêng cánh trái/phải của UAV đo từ cảm biến MPU6500."
                 >
                   <span>Góc nghiêng (Roll)</span>
-                  <strong><span id="rollSide">--</span>°</strong>
+                  <strong>
+                    <span id="rollSide">--</span>°
+                  </strong>
                 </div>
 
                 <div
@@ -838,8 +917,11 @@
                   data-popup-description="Góc chúc mũi xuống hoặc ngẩng mũi lên của UAV đo từ cảm biến MPU6500."
                 >
                   <span>Góc chúi/ngẩng (Pitch)</span>
-                  <strong><span id="pitchSide">--</span>°</strong>
+                  <strong>
+                    <span id="pitchSide">--</span>°
+                  </strong>
                 </div>
+
               </div>
             </div>
           </div>
@@ -847,6 +929,7 @@
 
         <!-- TỌA ĐỘ GPS -->
         <section class="card">
+
           <div class="card-header">
             <div class="card-title">
               <i class="fa-solid fa-location-dot"></i>
@@ -855,7 +938,9 @@
           </div>
 
           <div class="card-body">
+
             <div class="two-col-grid">
+
               <button
                 class="sub-tile"
                 type="button"
@@ -875,17 +960,22 @@
                 <span class="sub-tile-label">Kinh độ (Lon)</span>
                 <span class="sub-tile-val" id="lon">--.------</span>
               </button>
+
             </div>
 
             <div class="fix-row">
               <span>Định vị vệ tinh</span>
-              <strong id="fixTextSide" style="color: #fbbf24">Đang chờ</strong>
+              <strong id="fixTextSide" style="color: #fbbf24">
+                Đang chờ
+              </strong>
             </div>
+
           </div>
         </section>
 
         <!-- CHẤT LƯỢNG TÍN HIỆU GPS -->
         <section class="card">
+
           <div class="card-header">
             <div class="card-title">
               <i class="fa-solid fa-satellite"></i>
@@ -894,7 +984,9 @@
           </div>
 
           <div class="card-body">
+
             <div class="two-col-grid">
+
               <button
                 class="sub-tile"
                 type="button"
@@ -914,9 +1006,11 @@
                 <span class="sub-tile-label">HDOP</span>
                 <span class="sub-tile-val" id="hdop">--</span>
               </button>
+
             </div>
           </div>
         </section>
+
       </aside>
     </section>
 
@@ -928,7 +1022,7 @@
 
     <section class="metrics-grid">
 
-      <!-- RELATIVE ALTITUDE CARD -->
+      <!-- ĐỘ CAO TƯƠNG ĐỐI BMP280 -->
       <button
         class="metric-card"
         type="button"
@@ -1066,6 +1160,7 @@
 
     <!-- THANH TRẠNG THÁI TRUYỀN TIN -->
     <section class="gateway-bar">
+
       <div class="gw-cell">
         <span>Xác nhận trạm thu</span>
         <strong id="rxText">Chưa xác nhận</strong>
@@ -1080,17 +1175,29 @@
         <span>Giao thức truyền</span>
         <strong>ESP32 → MQTT WSS</strong>
       </div>
+
     </section>
   </main>
 
   <!-- MODAL CHI TIẾT -->
   <div id="metricModal" class="modal-backdrop" aria-hidden="true">
-    <section class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+
+    <section
+      class="modal-box"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modalTitle"
+    >
 
       <div class="modal-header">
         <h3 id="modalTitle">Thông tin dữ liệu</h3>
 
-        <button id="modalClose" class="modal-close" type="button" aria-label="Đóng">
+        <button
+          id="modalClose"
+          class="modal-close"
+          type="button"
+          aria-label="Đóng"
+        >
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
@@ -1101,13 +1208,16 @@
       </div>
 
       <p id="modalDescription" class="modal-text"></p>
+
     </section>
   </div>
 
   <script>
+
     // ========================= CONFIGURATION =========================
 
     const CONFIG = {
+
       brokerUrl: 'wss://broker.emqx.io:8084/mqtt',
 
       topics: {
@@ -1131,21 +1241,32 @@
       zoomControl: true
     }).setView(DEFAULT_POSITION, 15);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-      maxZoom: 19
-    }).addTo(map);
+    L.tileLayer(
+      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
+      }
+    ).addTo(map);
 
     const uavIcon = L.divIcon({
-      html: '<div class="uav-icon-wrap" id="uavRotator"><i class="fa-solid fa-location-arrow" style="transform: rotate(-45deg);"></i></div>',
+
+      html:
+        '<div class="uav-icon-wrap" id="uavRotator">' +
+        '<i class="fa-solid fa-location-arrow" style="transform: rotate(-45deg);"></i>' +
+        '</div>',
+
       iconSize: [32, 32],
+
       iconAnchor: [16, 16],
+
       className: 'uav-marker'
     });
 
-    const marker = L.marker(DEFAULT_POSITION, {
-      icon: uavIcon
-    }).addTo(map);
+    const marker = L.marker(
+      DEFAULT_POSITION,
+      { icon: uavIcon }
+    ).addTo(map);
 
     const pathLine = L.polyline([], {
       color: '#3b82f6',
@@ -1154,7 +1275,9 @@
     }).addTo(map);
 
     let firstFix = true;
+
     let lastPosition = null;
+
     let totalDistanceMeters = 0;
 
     // ========================= GLOBAL VARIABLES =========================
@@ -1168,16 +1291,21 @@
     };
 
     let lastGpsPayload = null;
+
     let lastGpsSeq = null;
+
     let lastAckSeq = null;
 
     let receiverHasGps = false;
+
     let gpsFixValid = false;
 
     // ========================= HELPER FUNCTIONS =========================
 
     function setBadge(node, mode, html) {
+
       node.className = `badge ${mode}`;
+
       node.innerHTML = html;
     }
 
@@ -1185,13 +1313,15 @@
 
       if (value === true || value === 1) return true;
 
-      if (value === false || value === 0 || value === null) {
+      if (
+        value === false ||
+        value === 0 ||
+        value === null
+      ) {
         return false;
       }
 
-      if (value === undefined) {
-        return fallback;
-      }
+      if (value === undefined) return fallback;
 
       const normalized = String(value)
         .trim()
@@ -1274,9 +1404,10 @@
 
       if (node) {
 
-        node.textContent = Number.isFinite(value)
-          ? value.toFixed(digits)
-          : '--';
+        node.textContent =
+          Number.isFinite(value)
+            ? value.toFixed(digits)
+            : '--';
       }
     }
 
@@ -1299,8 +1430,11 @@
 
       const R = 6371000;
 
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const dLat =
+        (lat2 - lat1) * Math.PI / 180;
+
+      const dLon =
+        (lon2 - lon1) * Math.PI / 180;
 
       const a =
         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -1333,7 +1467,10 @@
       );
 
       const seqMatches =
-        (lastGpsSeq === null || lastAckSeq === null)
+        (
+          lastGpsSeq === null ||
+          lastAckSeq === null
+        )
           ? true
           : (lastGpsSeq === lastAckSeq);
 
@@ -1347,6 +1484,7 @@
 
       setBadge(
         el('gpsEspStatus'),
+
         gpsOnline ? 'badge-ok' : 'badge-bad',
 
         gpsOnline
@@ -1358,6 +1496,7 @@
 
       setBadge(
         el('rxEspStatus'),
+
         receiverOnline ? 'badge-ok' : 'badge-bad',
 
         receiverOnline
@@ -1370,7 +1509,9 @@
       if (linkOnline) {
 
         const seqLabel =
-          lastAckSeq !== null ? ` #${lastAckSeq}` : '';
+          lastAckSeq !== null
+            ? ` #${lastAckSeq}`
+            : '';
 
         setBadge(
           el('linkStatus'),
@@ -1389,9 +1530,13 @@
 
         if (!receiverOnline) {
           reason = 'ESP32 #2 Offline';
-        } else if (!ackFresh) {
+        }
+
+        else if (!ackFresh) {
           reason = 'Chưa có ACK mới';
-        } else if (!seqMatches) {
+        }
+
+        else if (!seqMatches) {
           reason = 'ACK không khớp SEQ';
         }
 
@@ -1409,21 +1554,25 @@
       if (!lastGpsPayload) {
 
         el('fixText').textContent = 'Chưa có dữ liệu';
+
         el('fixText').style.color = '#fbbf24';
 
       } else if (!gpsOnline) {
 
         el('fixText').textContent = 'Mất dữ liệu GPS';
+
         el('fixText').style.color = '#f87171';
 
       } else if (gpsFixValid) {
 
         el('fixText').textContent = 'Đã chốt vệ tinh (Fix)';
+
         el('fixText').style.color = '#34d399';
 
       } else {
 
         el('fixText').textContent = 'Đang dò vệ tinh';
+
         el('fixText').style.color = '#fbbf24';
       }
 
@@ -1453,10 +1602,11 @@
         pick(data, ['lon', 'lng', 'longitude'])
       );
 
-      // ================= RELATIVE ALTITUDE =================
+      // ================= RELATIVE ALTITUDE FROM BMP280 =================
 
-      // Ưu tiên dữ liệu độ cao tương đối từ BMP280.
-      // Không sử dụng data.alt vì đây là độ cao GPS.
+      // Ưu tiên baro_alt_rel.
+      // Nếu firmware cũ chưa gửi baro_alt_rel thì dùng baro_alt.
+      // Không sử dụng data.alt vì đó là độ cao GPS.
 
       const relativeAlt = numberValue(
         pick(data, [
@@ -1469,19 +1619,21 @@
       );
 
       // Kiểm tra trạng thái BMP280.
-      // Nếu firmware không gửi các trường này,
-      // mặc định cho phép hiển thị để tương thích firmware cũ.
+      // Nếu firmware không gửi trường trạng thái,
+      // mặc định cho phép hiển thị để tương thích bản cũ.
 
       const bmpHealthy = toBoolean(
         pick(data, ['bmpHealthy', 'bmp_healthy']),
         true
       );
 
+      // Kiểm tra trạng thái hiệu chuẩn áp suất.
       const baselineReady = toBoolean(
         pick(data, ['baro_baseline_ready']),
         true
       );
 
+      // Chỉ hiển thị khi BMP280 hoạt động và đã hiệu chuẩn.
       const altitudeToDisplay =
         bmpHealthy && baselineReady
           ? relativeAlt
@@ -1573,11 +1725,12 @@
       // ================= UPDATE DISPLAY =================
 
       displayNumber('lat', lat, 6);
+
       displayNumber('lon', lon, 6);
 
       // IMPORTANT:
-      // Display relative altitude from BMP280.
-      // Never use GPS altitude for this card.
+      // Thẻ độ cao chỉ lấy dữ liệu BMP280.
+      // Không lấy trường alt từ GPS.
 
       displayNumber('alt', altitudeToDisplay, 1);
 
@@ -1587,14 +1740,19 @@
           : '--';
 
       displayNumber('speed', speed, 1);
+
       displayNumber('course', course, 0);
+
       displayNumber('hdop', hdop, 1);
+
       displayNumber('bat', battery, 2);
 
       displayNumber('roll', roll, 1);
+
       displayNumber('pitch', pitch, 1);
 
       displayNumber('rollSide', roll, 1);
+
       displayNumber('pitchSide', pitch, 1);
 
       // ================= ARTIFICIAL HORIZON =================
@@ -1656,6 +1814,7 @@
             );
 
             if (stepDist < 500) {
+
               totalDistanceMeters += stepDist;
             }
 
@@ -1675,7 +1834,9 @@
         if (points.length > CONFIG.maxPathPoints) {
 
           pathLine.setLatLngs(
-            points.slice(points.length - CONFIG.maxPathPoints)
+            points.slice(
+              points.length - CONFIG.maxPathPoints
+            )
           );
         }
 
@@ -1820,7 +1981,9 @@
 
         if (!retained) {
           lastSeen.gps = online ? now : 0;
-        } else if (!online) {
+        }
+
+        else if (!online) {
           lastSeen.gps = 0;
         }
 
@@ -1837,7 +2000,9 @@
 
         if (!retained) {
           lastSeen.receiver = online ? now : 0;
-        } else if (!online) {
+        }
+
+        else if (!online) {
           lastSeen.receiver = 0;
         }
 
@@ -2003,5 +2168,6 @@
     });
 
   </script>
+
 </body>
 </html>
