@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -216,7 +217,7 @@
       z-index: 1;
     }
 
-    /* Chế độ bản đồ tối dịu mắt (không gắt) */
+    /* DARK MAP */
     .muted-dark-map .leaflet-tile-pane {
       filter: invert(90%) hue-rotate(180deg) brightness(95%) contrast(90%) saturate(70%);
     }
@@ -287,7 +288,7 @@
       padding: 16px 18px;
     }
 
-    /* ATTITUDE HORIZON (CLEAN AVIATION STYLE) */
+    /* ATTITUDE HORIZON */
     .attitude-layout {
       display: grid;
       grid-template-columns: 132px 1fr;
@@ -547,12 +548,21 @@
       padding: 0 12px;
       border-right: 1px solid var(--border);
     }
+
     .gw-cell:last-child { border-right: none; }
     .gw-cell span { color: var(--text-secondary); }
-    .gw-cell strong { font-family: var(--font-mono); font-size: 12.5px; color: var(--text-primary); }
+    .gw-cell strong {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--text-primary);
+    }
 
     /* UAV MARKER */
-    .uav-marker { background: transparent; border: none; }
+    .uav-marker {
+      background: transparent;
+      border: none;
+    }
+
     .uav-icon-wrap {
       display: grid;
       place-items: center;
@@ -563,6 +573,7 @@
       border: 2px solid #3b82f6;
       transition: transform 0.25s ease;
     }
+
     .uav-icon-wrap i {
       color: #60a5fa;
       font-size: 15px;
@@ -582,7 +593,10 @@
       transition: opacity 0.15s ease;
     }
 
-    .modal-backdrop.is-open { opacity: 1; visibility: visible; }
+    .modal-backdrop.is-open {
+      opacity: 1;
+      visibility: visible;
+    }
 
     .modal-box {
       width: min(420px, 100%);
@@ -598,7 +612,10 @@
       justify-content: space-between;
     }
 
-    .modal-header h3 { font-size: 16px; font-weight: 600; }
+    .modal-header h3 {
+      font-size: 16px;
+      font-weight: 600;
+    }
 
     .modal-close {
       width: 32px;
@@ -618,7 +635,11 @@
       border: 1px solid var(--border);
     }
 
-    .modal-value-box span { font-size: 12px; color: var(--text-secondary); }
+    .modal-value-box span {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
     .modal-value-box div {
       margin-top: 4px;
       font-family: var(--font-mono);
@@ -635,19 +656,49 @@
 
     /* RESPONSIVE */
     @media (max-width: 1280px) {
-      .metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .metrics-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
     }
+
     @media (max-width: 960px) {
-      .main-grid { grid-template-columns: 1fr; }
-      .map-wrapper { height: 420px; }
-      .gateway-bar { grid-template-columns: 1fr; gap: 8px; }
-      .gw-cell { border-right: none; border-bottom: 1px solid var(--border); padding: 6px 0; }
-      .gw-cell:last-child { border-bottom: none; }
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .map-wrapper {
+        height: 420px;
+      }
+
+      .gateway-bar {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .gw-cell {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding: 6px 0;
+      }
+
+      .gw-cell:last-child {
+        border-bottom: none;
+      }
     }
+
     @media (max-width: 560px) {
-      .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .attitude-layout { grid-template-columns: 112px 1fr; }
-      .horizon-circle { width: 112px; height: 112px; }
+      .metrics-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .attitude-layout {
+        grid-template-columns: 112px 1fr;
+      }
+
+      .horizon-circle {
+        width: 112px;
+        height: 112px;
+      }
     }
   </style>
 </head>
@@ -655,7 +706,10 @@
 <body>
   <header class="topbar">
     <div class="brand">
-      <div class="brand-icon"><i class="fa-solid fa-paper-plane"></i></div>
+      <div class="brand-icon">
+        <i class="fa-solid fa-paper-plane"></i>
+      </div>
+
       <div class="brand-text">
         <h1>UAV Ground Station</h1>
         <p>Hệ thống giám sát hành trình &amp; cảm biến từ xa</p>
@@ -666,12 +720,15 @@
       <div id="cloudStatus" class="badge badge-bad">
         <i class="fa-solid fa-server"></i> MQTT: Đang kết nối...
       </div>
+
       <div id="gpsEspStatus" class="badge badge-bad">
         <i class="fa-solid fa-satellite-dish"></i> ESP32 GPS: Offline
       </div>
+
       <div id="rxEspStatus" class="badge badge-bad">
         <i class="fa-solid fa-microchip"></i> ESP32 Nhận: Offline
       </div>
+
       <div id="linkStatus" class="badge badge-warn">
         <i class="fa-solid fa-link"></i> Liên kết: Chưa có dữ liệu
       </div>
@@ -680,6 +737,7 @@
 
   <main class="container">
     <section class="main-grid">
+
       <!-- BẢN ĐỒ -->
       <article class="card">
         <div class="card-header">
@@ -692,9 +750,11 @@
             <button id="toggleDarkMapBtn" class="btn" type="button" title="Chuyển nền bản đồ sáng/tối">
               <i class="fa-solid fa-circle-half-stroke"></i> Bản đồ tối
             </button>
+
             <button id="centerUavBtn" class="btn" type="button" title="Đưa UAV về giữa bản đồ">
               <i class="fa-solid fa-location-crosshairs"></i> Về tâm
             </button>
+
             <button id="clearPathBtn" class="btn" type="button" title="Xóa vệt đường bay">
               <i class="fa-solid fa-eraser"></i> Xóa đường bay
             </button>
@@ -708,8 +768,10 @@
             <div class="map-chip">
               <span class="dot-live"></span> Trực tuyến
             </div>
+
             <div class="map-chip">
-              Quãng đường: <strong id="distanceText" style="font-family: var(--font-mono)">0 m</strong>
+              Quãng đường:
+              <strong id="distanceText" style="font-family: var(--font-mono)">0 m</strong>
             </div>
           </div>
         </div>
@@ -719,12 +781,14 @@
             <span>Cập nhật: <strong id="lastUpdate">--:--:--</strong></span>
             <span>Trạng thái GPS: <strong id="fixText" style="color: #fbbf24">Chưa có dữ liệu</strong></span>
           </div>
-          <span>ATGM336H · BMP280 · MPU6050</span>
+
+          <span>ATGM336H · BMP280 · MPU6500</span>
         </div>
       </article>
 
       <!-- CỘT THÔNG SỐ PHỤ -->
       <aside class="side-column">
+
         <!-- CHÂN TRỜI ẢO -->
         <section class="card">
           <div class="card-header">
@@ -748,6 +812,7 @@
                     <div class="h-line sm"></div>
                   </div>
                 </div>
+
                 <div class="center-reticle">
                   <div class="reticle-bar"></div>
                 </div>
@@ -759,7 +824,7 @@
                   role="button"
                   tabindex="0"
                   data-popup-title="Góc Roll (Nghiêng ngang)"
-                  data-popup-description="Góc nghiêng cánh trái/phải của UAV đo từ cảm biến MPU6050."
+                  data-popup-description="Góc nghiêng cánh trái/phải của UAV đo từ cảm biến MPU6500."
                 >
                   <span>Góc nghiêng (Roll)</span>
                   <strong><span id="rollSide">--</span>°</strong>
@@ -770,7 +835,7 @@
                   role="button"
                   tabindex="0"
                   data-popup-title="Góc Pitch (Chúi / Ngẩng)"
-                  data-popup-description="Góc chúc mũi xuống hoặc ngẩng mũi lên của UAV đo từ cảm biến MPU6050."
+                  data-popup-description="Góc chúc mũi xuống hoặc ngẩng mũi lên của UAV đo từ cảm biến MPU6500."
                 >
                   <span>Góc chúi/ngẩng (Pitch)</span>
                   <strong><span id="pitchSide">--</span>°</strong>
@@ -819,7 +884,7 @@
           </div>
         </section>
 
-        <!-- CHẤT LƯỢNG TÍN HIỆU -->
+        <!-- CHẤT LƯỢNG TÍN HIỆU GPS -->
         <section class="card">
           <div class="card-header">
             <div class="card-title">
@@ -862,22 +927,32 @@
     </div>
 
     <section class="metrics-grid">
+
+      <!-- RELATIVE ALTITUDE CARD -->
       <button
         class="metric-card"
         type="button"
-        data-popup-title="Độ cao (Altitude)"
-        data-popup-description="Độ cao tương đối tính từ điểm khởi hành đo bằng cảm biến áp suất BMP280."
+        data-popup-title="Độ cao tương đối (BMP280)"
+        data-popup-description="Độ cao tương đối của UAV so với điểm cất cánh. Giá trị được tính từ áp suất không khí đo bởi BMP280, sử dụng áp suất tại thời điểm khởi động làm mốc tham chiếu."
       >
         <div class="metric-card-top">
-          <span>Độ cao</span>
+          <span>Độ cao tương đối</span>
           <i class="fa-solid fa-mountain"></i>
         </div>
+
         <div>
-          <div class="metric-number"><span id="alt">--.-</span><span class="metric-unit">m</span></div>
-          <div class="metric-desc">Cảm biến BMP280</div>
+          <div class="metric-number">
+            <span id="alt">--.-</span>
+            <span class="metric-unit">m</span>
+          </div>
+
+          <div class="metric-desc">
+            So với điểm cất cánh · BMP280
+          </div>
         </div>
       </button>
 
+      <!-- SPEED -->
       <button
         class="metric-card"
         type="button"
@@ -888,12 +963,18 @@
           <span>Tốc độ</span>
           <i class="fa-solid fa-gauge"></i>
         </div>
+
         <div>
-          <div class="metric-number"><span id="speed">--.-</span><span class="metric-unit">km/h</span></div>
+          <div class="metric-number">
+            <span id="speed">--.-</span>
+            <span class="metric-unit">km/h</span>
+          </div>
+
           <div class="metric-desc">Vận tốc mặt đất</div>
         </div>
       </button>
 
+      <!-- COURSE -->
       <button
         class="metric-card"
         type="button"
@@ -904,12 +985,18 @@
           <span>Hướng bay</span>
           <i class="fa-solid fa-compass"></i>
         </div>
+
         <div>
-          <div class="metric-number"><span id="course">---</span><span class="metric-unit">°</span></div>
+          <div class="metric-number">
+            <span id="course">---</span>
+            <span class="metric-unit">°</span>
+          </div>
+
           <div class="metric-desc">Góc phương vị</div>
         </div>
       </button>
 
+      <!-- BATTERY -->
       <button
         class="metric-card"
         type="button"
@@ -920,43 +1007,61 @@
           <span>Điện áp pin</span>
           <i class="fa-solid fa-battery-three-quarters"></i>
         </div>
+
         <div>
-          <div class="metric-number"><span id="bat">--.--</span><span class="metric-unit">V</span></div>
+          <div class="metric-number">
+            <span id="bat">--.--</span>
+            <span class="metric-unit">V</span>
+          </div>
+
           <div class="metric-desc">Nguồn hệ thống</div>
         </div>
       </button>
 
+      <!-- ROLL -->
       <button
         class="metric-card"
         type="button"
         data-popup-title="Góc nghiêng Roll"
-        data-popup-description="Góc nghiêng lắc ngang của thân máy bay đo từ MPU6050."
+        data-popup-description="Góc nghiêng lắc ngang của thân máy bay đo từ MPU6500."
       >
         <div class="metric-card-top">
           <span>Roll</span>
           <i class="fa-solid fa-rotate"></i>
         </div>
+
         <div>
-          <div class="metric-number"><span id="roll">--</span><span class="metric-unit">°</span></div>
+          <div class="metric-number">
+            <span id="roll">--</span>
+            <span class="metric-unit">°</span>
+          </div>
+
           <div class="metric-desc">Nghiêng trái / phải</div>
         </div>
       </button>
 
+      <!-- PITCH -->
       <button
         class="metric-card"
         type="button"
         data-popup-title="Góc chúi Pitch"
-        data-popup-description="Góc chúc/ngẩng mũi máy bay đo từ MPU6050."
+        data-popup-description="Góc chúc/ngẩng mũi máy bay đo từ MPU6500."
       >
         <div class="metric-card-top">
           <span>Pitch</span>
           <i class="fa-solid fa-arrows-up-down"></i>
         </div>
+
         <div>
-          <div class="metric-number"><span id="pitch">--</span><span class="metric-unit">°</span></div>
+          <div class="metric-number">
+            <span id="pitch">--</span>
+            <span class="metric-unit">°</span>
+          </div>
+
           <div class="metric-desc">Chúc / ngẩng mũi</div>
         </div>
       </button>
+
     </section>
 
     <!-- THANH TRẠNG THÁI TRUYỀN TIN -->
@@ -965,10 +1070,12 @@
         <span>Xác nhận trạm thu</span>
         <strong id="rxText">Chưa xác nhận</strong>
       </div>
+
       <div class="gw-cell">
         <span>Số thứ tự gói tin</span>
         <strong id="gpsTime">--</strong>
       </div>
+
       <div class="gw-cell">
         <span>Giao thức truyền</span>
         <strong>ESP32 → MQTT WSS</strong>
@@ -979,37 +1086,50 @@
   <!-- MODAL CHI TIẾT -->
   <div id="metricModal" class="modal-backdrop" aria-hidden="true">
     <section class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+
       <div class="modal-header">
         <h3 id="modalTitle">Thông tin dữ liệu</h3>
+
         <button id="modalClose" class="modal-close" type="button" aria-label="Đóng">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
+
       <div class="modal-value-box">
         <span>Giá trị hiện tại</span>
         <div id="modalValue">--</div>
       </div>
+
       <p id="modalDescription" class="modal-text"></p>
     </section>
   </div>
 
   <script>
+    // ========================= CONFIGURATION =========================
+
     const CONFIG = {
       brokerUrl: 'wss://broker.emqx.io:8084/mqtt',
+
       topics: {
         gps: 'uav/telemetry/du_an_gps_cua_toi_999',
         gpsStatus: 'uav/status/du_an_gps_cua_toi_999/esp32_gps',
         receiverStatus: 'uav/status/du_an_gps_cua_toi_999/esp32_receiver',
         receiverAck: 'uav/ack/du_an_gps_cua_toi_999/esp32_receiver'
       },
+
       gpsTimeoutMs: 12000,
       deviceTimeoutMs: 15000,
       ackTimeoutMs: 12000,
       maxPathPoints: 1000
     };
 
+    // ========================= MAP INITIALIZATION =========================
+
     const DEFAULT_POSITION = [21.0285, 105.8542];
-    const map = L.map('map', { zoomControl: true }).setView(DEFAULT_POSITION, 15);
+
+    const map = L.map('map', {
+      zoomControl: true
+    }).setView(DEFAULT_POSITION, 15);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',
@@ -1023,7 +1143,9 @@
       className: 'uav-marker'
     });
 
-    const marker = L.marker(DEFAULT_POSITION, { icon: uavIcon }).addTo(map);
+    const marker = L.marker(DEFAULT_POSITION, {
+      icon: uavIcon
+    }).addTo(map);
 
     const pathLine = L.polyline([], {
       color: '#3b82f6',
@@ -1035,14 +1157,24 @@
     let lastPosition = null;
     let totalDistanceMeters = 0;
 
+    // ========================= GLOBAL VARIABLES =========================
+
     const el = (id) => document.getElementById(id);
 
-    const lastSeen = { gps: 0, receiver: 0, ack: 0 };
+    const lastSeen = {
+      gps: 0,
+      receiver: 0,
+      ack: 0
+    };
+
     let lastGpsPayload = null;
     let lastGpsSeq = null;
     let lastAckSeq = null;
+
     let receiverHasGps = false;
     let gpsFixValid = false;
+
+    // ========================= HELPER FUNCTIONS =========================
 
     function setBadge(node, mode, html) {
       node.className = `badge ${mode}`;
@@ -1050,146 +1182,410 @@
     }
 
     function toBoolean(value, fallback = false) {
+
       if (value === true || value === 1) return true;
-      if (value === false || value === 0 || value === null) return false;
-      if (value === undefined) return fallback;
-      const normalized = String(value).trim().toLowerCase();
-      if (['true', '1', 'yes', 'on', 'online', 'valid', 'fix', 'a'].includes(normalized)) return true;
-      if (['false', '0', 'no', 'off', 'offline', 'invalid', 'no_fix', 'v'].includes(normalized)) return false;
+
+      if (value === false || value === 0 || value === null) {
+        return false;
+      }
+
+      if (value === undefined) {
+        return fallback;
+      }
+
+      const normalized = String(value)
+        .trim()
+        .toLowerCase();
+
+      if ([
+        'true', '1', 'yes', 'on',
+        'online', 'valid', 'fix', 'a'
+      ].includes(normalized)) {
+        return true;
+      }
+
+      if ([
+        'false', '0', 'no', 'off',
+        'offline', 'invalid', 'no_fix', 'v'
+      ].includes(normalized)) {
+        return false;
+      }
+
       return fallback;
     }
 
     function normalizeSeq(value) {
-      if (value === undefined || value === null || value === '') return null;
+
+      if (
+        value === undefined ||
+        value === null ||
+        value === ''
+      ) {
+        return null;
+      }
+
       const n = Number(value);
-      return Number.isFinite(n) ? String(n) : String(value).trim();
+
+      return Number.isFinite(n)
+        ? String(n)
+        : String(value).trim();
     }
 
     function isFresh(timestamp, timeoutMs) {
-      return timestamp > 0 && (Date.now() - timestamp) <= timeoutMs;
+
+      return timestamp > 0 &&
+        (Date.now() - timestamp) <= timeoutMs;
     }
 
-    function updateConnectionUI() {
-      const gpsOnline = isFresh(lastSeen.gps, CONFIG.gpsTimeoutMs);
-      const receiverOnline = isFresh(lastSeen.receiver, CONFIG.deviceTimeoutMs);
-      const ackFresh = isFresh(lastSeen.ack, CONFIG.ackTimeoutMs);
+    function pick(data, keys) {
 
-      const seqMatches = (lastGpsSeq === null || lastAckSeq === null) ? true : (lastGpsSeq === lastAckSeq);
-      const linkOnline = receiverOnline && receiverHasGps && ackFresh && seqMatches;
+      for (const key of keys) {
+
+        if (
+          data[key] !== undefined &&
+          data[key] !== null &&
+          data[key] !== ''
+        ) {
+          return data[key];
+        }
+      }
+
+      return undefined;
+    }
+
+    function numberValue(value, fallback = NaN) {
+
+      if (
+        value === undefined ||
+        value === null ||
+        value === ''
+      ) {
+        return fallback;
+      }
+
+      const n = Number(value);
+
+      return Number.isFinite(n) ? n : fallback;
+    }
+
+    function displayNumber(id, value, digits) {
+
+      const node = el(id);
+
+      if (node) {
+
+        node.textContent = Number.isFinite(value)
+          ? value.toFixed(digits)
+          : '--';
+      }
+    }
+
+    function parseFix(value, lat, lon) {
+
+      if (value !== undefined) {
+        return toBoolean(value, false);
+      }
+
+      return Number.isFinite(lat) &&
+        Number.isFinite(lon) &&
+        Math.abs(lat) <= 90 &&
+        Math.abs(lon) <= 180 &&
+        !(lat === 0 && lon === 0);
+    }
+
+    // ========================= DISTANCE CALCULATION =========================
+
+    function calcDistance(lat1, lon1, lat2, lon2) {
+
+      const R = 6371000;
+
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) *
+        Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+
+      return R * 2 *
+        Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    // ========================= CONNECTION STATUS =========================
+
+    function updateConnectionUI() {
+
+      const gpsOnline = isFresh(
+        lastSeen.gps,
+        CONFIG.gpsTimeoutMs
+      );
+
+      const receiverOnline = isFresh(
+        lastSeen.receiver,
+        CONFIG.deviceTimeoutMs
+      );
+
+      const ackFresh = isFresh(
+        lastSeen.ack,
+        CONFIG.ackTimeoutMs
+      );
+
+      const seqMatches =
+        (lastGpsSeq === null || lastAckSeq === null)
+          ? true
+          : (lastGpsSeq === lastAckSeq);
+
+      const linkOnline =
+        receiverOnline &&
+        receiverHasGps &&
+        ackFresh &&
+        seqMatches;
+
+      // GPS ESP32 status
 
       setBadge(
         el('gpsEspStatus'),
         gpsOnline ? 'badge-ok' : 'badge-bad',
+
         gpsOnline
           ? '<i class="fa-solid fa-satellite-dish"></i> ESP32 GPS: Online'
           : '<i class="fa-solid fa-satellite-dish"></i> ESP32 GPS: Offline'
       );
 
+      // Receiver ESP32 status
+
       setBadge(
         el('rxEspStatus'),
         receiverOnline ? 'badge-ok' : 'badge-bad',
+
         receiverOnline
           ? '<i class="fa-solid fa-microchip"></i> ESP32 Nhận: Online'
           : '<i class="fa-solid fa-microchip"></i> ESP32 Nhận: Offline'
       );
 
-      if (linkOnline) {
-        const seqLabel = lastAckSeq !== null ? ` #${lastAckSeq}` : '';
-        setBadge(el('linkStatus'), 'badge-ok', `<i class="fa-solid fa-link"></i> Liên kết: Đã nhận${seqLabel}`);
-        el('rxText').textContent = lastAckSeq !== null ? `Đã nhận gói #${lastAckSeq}` : 'Đã nhận GPS';
-      } else {
-        let reason = 'Chưa xác nhận';
-        if (!receiverOnline) reason = 'ESP32 #2 Offline';
-        else if (!ackFresh) reason = 'Chưa có ACK mới';
-        else if (!seqMatches) reason = 'ACK không khớp SEQ';
+      // ESP-NOW link status
 
-        setBadge(el('linkStatus'), 'badge-warn', `<i class="fa-solid fa-link-slash"></i> Liên kết: ${reason}`);
+      if (linkOnline) {
+
+        const seqLabel =
+          lastAckSeq !== null ? ` #${lastAckSeq}` : '';
+
+        setBadge(
+          el('linkStatus'),
+          'badge-ok',
+          `<i class="fa-solid fa-link"></i> Liên kết: Đã nhận${seqLabel}`
+        );
+
+        el('rxText').textContent =
+          lastAckSeq !== null
+            ? `Đã nhận gói #${lastAckSeq}`
+            : 'Đã nhận GPS';
+
+      } else {
+
+        let reason = 'Chưa xác nhận';
+
+        if (!receiverOnline) {
+          reason = 'ESP32 #2 Offline';
+        } else if (!ackFresh) {
+          reason = 'Chưa có ACK mới';
+        } else if (!seqMatches) {
+          reason = 'ACK không khớp SEQ';
+        }
+
+        setBadge(
+          el('linkStatus'),
+          'badge-warn',
+          `<i class="fa-solid fa-link-slash"></i> Liên kết: ${reason}`
+        );
+
         el('rxText').textContent = reason;
       }
 
+      // GPS fix status
+
       if (!lastGpsPayload) {
+
         el('fixText').textContent = 'Chưa có dữ liệu';
         el('fixText').style.color = '#fbbf24';
+
       } else if (!gpsOnline) {
+
         el('fixText').textContent = 'Mất dữ liệu GPS';
         el('fixText').style.color = '#f87171';
+
       } else if (gpsFixValid) {
+
         el('fixText').textContent = 'Đã chốt vệ tinh (Fix)';
         el('fixText').style.color = '#34d399';
+
       } else {
+
         el('fixText').textContent = 'Đang dò vệ tinh';
         el('fixText').style.color = '#fbbf24';
       }
 
-      el('fixTextSide').textContent = el('fixText').textContent;
-      el('fixTextSide').style.color = el('fixText').style.color;
+      el('fixTextSide').textContent =
+        el('fixText').textContent;
+
+      el('fixTextSide').style.color =
+        el('fixText').style.color;
     }
 
-    function pick(data, keys) {
-      for (const key of keys) {
-        if (data[key] !== undefined && data[key] !== null && data[key] !== '') return data[key];
-      }
-      return undefined;
-    }
-
-    function numberValue(value, fallback = NaN) {
-      if (value === undefined || value === null || value === '') return fallback;
-      const n = Number(value);
-      return Number.isFinite(n) ? n : fallback;
-    }
-
-    function displayNumber(id, value, digits) {
-      const node = el(id);
-      if (node) node.textContent = Number.isFinite(value) ? value.toFixed(digits) : '--';
-    }
-
-    function parseFix(value, lat, lon) {
-      if (value !== undefined) return toBoolean(value, false);
-      return Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && !(lat === 0 && lon === 0);
-    }
-
-    function calcDistance(lat1, lon1, lat2, lon2) {
-      const R = 6371000;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
+    // ========================= UPDATE TELEMETRY DATA =========================
 
     function updateGpsData(payload) {
-      const data = payload && typeof payload.gps === 'object' ? payload.gps : payload;
 
-      const lat = numberValue(pick(data, ['lat', 'latitude']));
-      const lon = numberValue(pick(data, ['lon', 'lng', 'longitude']));
-      const alt = numberValue(pick(data, ['alt', 'altitude', 'altitude_m', 'alt_m']));
-      const sats = numberValue(pick(data, ['sat', 'sats', 'satellites', 'satellites_in_view']), NaN);
+      const data =
+        payload && typeof payload.gps === 'object'
+          ? payload.gps
+          : payload;
 
-      let speed = numberValue(pick(data, ['speed_kmh', 'speed_kph', 'speedKmh', 'speedKph']));
-      const speedMps = numberValue(pick(data, ['speed_mps', 'speedMps']));
-      const genericSpeed = numberValue(pick(data, ['speed']));
-      const speedUnit = String(pick(data, ['speed_unit', 'speedUnit']) || 'kmh').toLowerCase();
+      // ================= GPS COORDINATES =================
+
+      const lat = numberValue(
+        pick(data, ['lat', 'latitude'])
+      );
+
+      const lon = numberValue(
+        pick(data, ['lon', 'lng', 'longitude'])
+      );
+
+      // ================= RELATIVE ALTITUDE =================
+
+      // Ưu tiên dữ liệu độ cao tương đối từ BMP280.
+      // Không sử dụng data.alt vì đây là độ cao GPS.
+
+      const relativeAlt = numberValue(
+        pick(data, [
+          'baro_alt_rel',
+          'baro_alt',
+          'relative_altitude',
+          'relativeAltitude'
+        ]),
+        NaN
+      );
+
+      // Kiểm tra trạng thái BMP280.
+      // Nếu firmware không gửi các trường này,
+      // mặc định cho phép hiển thị để tương thích firmware cũ.
+
+      const bmpHealthy = toBoolean(
+        pick(data, ['bmpHealthy', 'bmp_healthy']),
+        true
+      );
+
+      const baselineReady = toBoolean(
+        pick(data, ['baro_baseline_ready']),
+        true
+      );
+
+      const altitudeToDisplay =
+        bmpHealthy && baselineReady
+          ? relativeAlt
+          : NaN;
+
+      // ================= GPS INFORMATION =================
+
+      const sats = numberValue(
+        pick(data, [
+          'sat',
+          'sats',
+          'satellites',
+          'satellites_in_view'
+        ]),
+        NaN
+      );
+
+      let speed = numberValue(
+        pick(data, [
+          'speed_kmh',
+          'speed_kph',
+          'speedKmh',
+          'speedKph'
+        ])
+      );
+
+      const speedMps = numberValue(
+        pick(data, ['speed_mps', 'speedMps'])
+      );
+
+      const genericSpeed = numberValue(
+        pick(data, ['speed'])
+      );
+
+      const speedUnit = String(
+        pick(data, ['speed_unit', 'speedUnit']) || 'kmh'
+      ).toLowerCase();
 
       if (!Number.isFinite(speed)) {
-        if (Number.isFinite(speedMps)) speed = speedMps * 3.6;
-        else if (Number.isFinite(genericSpeed)) {
-          speed = ['m/s', 'mps', 'ms'].includes(speedUnit) ? genericSpeed * 3.6 : genericSpeed;
+
+        if (Number.isFinite(speedMps)) {
+
+          speed = speedMps * 3.6;
+
+        } else if (Number.isFinite(genericSpeed)) {
+
+          speed = ['m/s', 'mps', 'ms'].includes(speedUnit)
+            ? genericSpeed * 3.6
+            : genericSpeed;
         }
       }
 
-      const course = numberValue(pick(data, ['course', 'heading', 'course_deg', 'heading_deg', 'course_over_ground']));
-      const hdop = numberValue(pick(data, ['hdop', 'HDOP']));
-      const battery = numberValue(pick(data, ['bat', 'battery_v', 'batteryVoltage']));
-      const roll = numberValue(pick(data, ['roll', 'roll_deg']));
-      const pitch = numberValue(pick(data, ['pitch', 'pitch_deg']));
+      const course = numberValue(
+        pick(data, [
+          'course',
+          'heading',
+          'course_deg',
+          'heading_deg',
+          'course_over_ground'
+        ])
+      );
 
-      gpsFixValid = parseFix(pick(data, ['fix', 'gpsFix', 'valid', 'gps_valid']), lat, lon);
+      const hdop = numberValue(
+        pick(data, ['hdop', 'HDOP'])
+      );
+
+      const battery = numberValue(
+        pick(data, ['bat', 'battery_v', 'batteryVoltage'])
+      );
+
+      // ================= MPU6500 / MPU6050 =================
+
+      const roll = numberValue(
+        pick(data, ['roll', 'roll_deg'])
+      );
+
+      const pitch = numberValue(
+        pick(data, ['pitch', 'pitch_deg'])
+      );
+
+      // ================= GPS FIX =================
+
+      gpsFixValid = parseFix(
+        pick(data, ['fix', 'gpsFix', 'valid', 'gps_valid']),
+        lat,
+        lon
+      );
+
+      // ================= UPDATE DISPLAY =================
 
       displayNumber('lat', lat, 6);
       displayNumber('lon', lon, 6);
-      displayNumber('alt', alt, 1);
-      el('sat').textContent = Number.isFinite(sats) ? String(Math.round(sats)) : '--';
+
+      // IMPORTANT:
+      // Display relative altitude from BMP280.
+      // Never use GPS altitude for this card.
+
+      displayNumber('alt', altitudeToDisplay, 1);
+
+      el('sat').textContent =
+        Number.isFinite(sats)
+          ? String(Math.round(sats))
+          : '--';
+
       displayNumber('speed', speed, 1);
       displayNumber('course', course, 0);
       displayNumber('hdop', hdop, 1);
@@ -1197,198 +1593,415 @@
 
       displayNumber('roll', roll, 1);
       displayNumber('pitch', pitch, 1);
+
       displayNumber('rollSide', roll, 1);
       displayNumber('pitchSide', pitch, 1);
 
-      const safeRoll = Number.isFinite(roll) ? Math.max(-90, Math.min(90, roll)) : 0;
-      const safePitch = Number.isFinite(pitch) ? Math.max(-45, Math.min(45, pitch)) : 0;
+      // ================= ARTIFICIAL HORIZON =================
+
+      const safeRoll = Number.isFinite(roll)
+        ? Math.max(-90, Math.min(90, roll))
+        : 0;
+
+      const safePitch = Number.isFinite(pitch)
+        ? Math.max(-45, Math.min(45, pitch))
+        : 0;
+
       const horizonBall = el('horizonBall');
+
       if (horizonBall) {
-        horizonBall.style.transform = `rotate(${-safeRoll}deg) translateY(${safePitch * 1.2}px)`;
+
+        horizonBall.style.transform =
+          `rotate(${-safeRoll}deg) translateY(${safePitch * 1.2}px)`;
       }
+
+      // ================= UAV DIRECTION =================
 
       const rotator = document.getElementById('uavRotator');
+
       if (rotator && Number.isFinite(course)) {
-        rotator.style.transform = `rotate(${course}deg)`;
+
+        rotator.style.transform =
+          `rotate(${course}deg)`;
       }
 
+      // ================= GPS MAP =================
+
       const validCoordinates =
-        Number.isFinite(lat) && Number.isFinite(lon) &&
-        Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && !(lat === 0 && lon === 0);
+        Number.isFinite(lat) &&
+        Number.isFinite(lon) &&
+        Math.abs(lat) <= 90 &&
+        Math.abs(lon) <= 180 &&
+        !(lat === 0 && lon === 0);
 
       if (gpsFixValid && validCoordinates) {
+
         const position = [lat, lon];
+
         marker.setLatLng(position);
 
-        if (!lastPosition || lastPosition[0] !== lat || lastPosition[1] !== lon) {
+        if (
+          !lastPosition ||
+          lastPosition[0] !== lat ||
+          lastPosition[1] !== lon
+        ) {
+
           if (lastPosition) {
-            const stepDist = calcDistance(lastPosition[0], lastPosition[1], lat, lon);
-            if (stepDist < 500) totalDistanceMeters += stepDist;
-            el('distanceText').textContent = totalDistanceMeters >= 1000
-              ? `${(totalDistanceMeters / 1000).toFixed(2)} km`
-              : `${Math.round(totalDistanceMeters)} m`;
+
+            const stepDist = calcDistance(
+              lastPosition[0],
+              lastPosition[1],
+              lat,
+              lon
+            );
+
+            if (stepDist < 500) {
+              totalDistanceMeters += stepDist;
+            }
+
+            el('distanceText').textContent =
+              totalDistanceMeters >= 1000
+                ? `${(totalDistanceMeters / 1000).toFixed(2)} km`
+                : `${Math.round(totalDistanceMeters)} m`;
           }
+
           pathLine.addLatLng(position);
+
           lastPosition = position;
         }
 
         const points = pathLine.getLatLngs();
+
         if (points.length > CONFIG.maxPathPoints) {
-          pathLine.setLatLngs(points.slice(points.length - CONFIG.maxPathPoints));
+
+          pathLine.setLatLngs(
+            points.slice(points.length - CONFIG.maxPathPoints)
+          );
         }
 
         if (firstFix) {
+
           map.setView(position, 17);
+
           firstFix = false;
         }
       }
 
-      el('lastUpdate').textContent = new Date().toLocaleTimeString('vi-VN');
+      // ================= LAST UPDATE =================
+
+      el('lastUpdate').textContent =
+        new Date().toLocaleTimeString('vi-VN');
+
       lastGpsPayload = payload;
 
-      const seq = pick(data, ['seq', 'sequence', 'packet_id']) ?? pick(payload, ['seq', 'sequence', 'packet_id']);
+      const seq =
+        pick(data, ['seq', 'sequence', 'packet_id']) ??
+        pick(payload, ['seq', 'sequence', 'packet_id']);
+
       if (seq !== undefined) {
+
         lastGpsSeq = normalizeSeq(seq);
-        el('gpsTime').textContent = `#${lastGpsSeq}`;
+
+        el('gpsTime').textContent =
+          `#${lastGpsSeq}`;
       }
 
       updateConnectionUI();
     }
 
+    // ========================= MQTT CONNECTION =========================
+
     const cloudBadge = el('cloudStatus');
-    const clientId = 'uav_gs_' + Math.random().toString(16).slice(2, 10);
+
+    const clientId =
+      'uav_gs_' + Math.random().toString(16).slice(2, 10);
 
     const client = mqtt.connect(CONFIG.brokerUrl, {
+
       clientId,
+
       clean: true,
+
       connectTimeout: 10000,
+
       reconnectPeriod: 3000,
+
       keepalive: 30
     });
 
+    // ========================= MQTT CONNECT =========================
+
     client.on('connect', () => {
-      setBadge(cloudBadge, 'badge-ok', '<i class="fa-solid fa-server"></i> MQTT: Đã kết nối');
+
+      setBadge(
+        cloudBadge,
+        'badge-ok',
+        '<i class="fa-solid fa-server"></i> MQTT: Đã kết nối'
+      );
+
       client.subscribe([
         CONFIG.topics.gps,
         CONFIG.topics.gpsStatus,
         CONFIG.topics.receiverStatus,
         CONFIG.topics.receiverAck
-      ], { qos: 0 });
+      ], {
+        qos: 0
+      });
     });
 
     client.on('reconnect', () => {
-      setBadge(cloudBadge, 'badge-warn', '<i class="fa-solid fa-rotate"></i> MQTT: Đang kết nối lại');
+
+      setBadge(
+        cloudBadge,
+        'badge-warn',
+        '<i class="fa-solid fa-rotate"></i> MQTT: Đang kết nối lại'
+      );
     });
 
     client.on('close', () => {
-      setBadge(cloudBadge, 'badge-bad', '<i class="fa-solid fa-server"></i> MQTT: Offline');
+
+      setBadge(
+        cloudBadge,
+        'badge-bad',
+        '<i class="fa-solid fa-server"></i> MQTT: Offline'
+      );
     });
 
     client.on('error', () => {
-      setBadge(cloudBadge, 'badge-bad', '<i class="fa-solid fa-triangle-exclamation"></i> MQTT: Lỗi kết nối');
+
+      setBadge(
+        cloudBadge,
+        'badge-bad',
+        '<i class="fa-solid fa-triangle-exclamation"></i> MQTT: Lỗi kết nối'
+      );
     });
+
+    // ========================= MQTT MESSAGE HANDLER =========================
 
     client.on('message', (topic, message, packet) => {
+
       let data;
+
       try {
+
         data = JSON.parse(message.toString());
+
       } catch (e) {
+
         return;
       }
-      if (!data || typeof data !== 'object') return;
+
+      if (!data || typeof data !== 'object') {
+        return;
+      }
 
       const retained = Boolean(packet && packet.retain);
+
       const now = Date.now();
 
+      // Main telemetry topic
+
       if (topic === CONFIG.topics.gps) {
-        if (!retained) lastSeen.gps = now;
+
+        if (!retained) {
+          lastSeen.gps = now;
+        }
+
         updateGpsData(data);
+
         return;
       }
+
+      // UAV GPS status
 
       if (topic === CONFIG.topics.gpsStatus) {
+
         const online = toBoolean(data.online, true);
-        if (!retained) lastSeen.gps = online ? now : 0;
-        else if (!online) lastSeen.gps = 0;
+
+        if (!retained) {
+          lastSeen.gps = online ? now : 0;
+        } else if (!online) {
+          lastSeen.gps = 0;
+        }
+
         updateConnectionUI();
+
         return;
       }
+
+      // Ground Station receiver status
 
       if (topic === CONFIG.topics.receiverStatus) {
+
         const online = toBoolean(data.online, true);
-        if (!retained) lastSeen.receiver = online ? now : 0;
-        else if (!online) lastSeen.receiver = 0;
+
+        if (!retained) {
+          lastSeen.receiver = online ? now : 0;
+        } else if (!online) {
+          lastSeen.receiver = 0;
+        }
 
         if (data.gps_received !== undefined) {
-          receiverHasGps = toBoolean(data.gps_received, false);
-          lastSeen.ack = (!retained && receiverHasGps) ? now : 0;
+
+          receiverHasGps = toBoolean(
+            data.gps_received,
+            false
+          );
+
+          lastSeen.ack =
+            (!retained && receiverHasGps)
+              ? now
+              : 0;
         }
-        const ackSeq = pick(data, ['last_gps_seq', 'seq', 'last_seq']);
+
+        const ackSeq = pick(
+          data,
+          ['last_gps_seq', 'seq', 'last_seq']
+        );
+
         if (ackSeq !== undefined) {
+
           lastAckSeq = normalizeSeq(ackSeq);
-          if (!retained && receiverHasGps) lastSeen.ack = now;
+
+          if (!retained && receiverHasGps) {
+            lastSeen.ack = now;
+          }
         }
+
         updateConnectionUI();
+
         return;
       }
 
+      // Ground Station ACK
+
       if (topic === CONFIG.topics.receiverAck) {
+
         if (!retained) {
+
           lastSeen.receiver = now;
+
           lastSeen.ack = now;
         }
-        receiverHasGps = toBoolean(data.gps_received, data.seq !== undefined || data.last_gps_seq !== undefined);
-        const ackSeq = pick(data, ['seq', 'last_gps_seq', 'last_seq']);
-        if (ackSeq !== undefined) lastAckSeq = normalizeSeq(ackSeq);
-        if (!receiverHasGps) lastSeen.ack = 0;
+
+        receiverHasGps = toBoolean(
+          data.gps_received,
+          data.seq !== undefined ||
+          data.last_gps_seq !== undefined
+        );
+
+        const ackSeq = pick(
+          data,
+          ['seq', 'last_gps_seq', 'last_seq']
+        );
+
+        if (ackSeq !== undefined) {
+
+          lastAckSeq = normalizeSeq(ackSeq);
+        }
+
+        if (!receiverHasGps) {
+
+          lastSeen.ack = 0;
+        }
+
         updateConnectionUI();
       }
     });
+
+    // ========================= PERIODIC STATUS UPDATE =========================
 
     setInterval(updateConnectionUI, 1000);
 
+    // ========================= MAP BUTTONS =========================
+
     el('clearPathBtn').addEventListener('click', () => {
+
       pathLine.setLatLngs([]);
+
       lastPosition = null;
+
       totalDistanceMeters = 0;
+
       el('distanceText').textContent = '0 m';
     });
 
     el('centerUavBtn').addEventListener('click', () => {
+
       map.setView(marker.getLatLng(), 17);
     });
 
     el('toggleDarkMapBtn').addEventListener('click', function () {
+
       const wrapper = el('mapWrapper');
+
       wrapper.classList.toggle('muted-dark-map');
+
       this.classList.toggle('active');
     });
 
+    // ========================= POPUP SYSTEM =========================
+
     const metricModal = el('metricModal');
+
     const modalTitle = el('modalTitle');
+
     const modalValue = el('modalValue');
+
     const modalDescription = el('modalDescription');
+
     const modalClose = el('modalClose');
 
     document.querySelectorAll('[data-popup-title]').forEach((card) => {
+
       card.addEventListener('click', () => {
-        const valNode = card.querySelector('.metric-number, .sub-tile-val, strong');
-        modalTitle.textContent = card.dataset.popupTitle;
-        modalValue.textContent = valNode ? valNode.innerText.replace(/\s+/g, ' ').trim() : '--';
-        modalDescription.textContent = card.dataset.popupDescription || '';
+
+        const valNode = card.querySelector(
+          '.metric-number, .sub-tile-val, strong'
+        );
+
+        modalTitle.textContent =
+          card.dataset.popupTitle;
+
+        modalValue.textContent =
+          valNode
+            ? valNode.innerText.replace(/\s+/g, ' ').trim()
+            : '--';
+
+        modalDescription.textContent =
+          card.dataset.popupDescription || '';
+
         metricModal.classList.add('is-open');
+
         metricModal.setAttribute('aria-hidden', 'false');
       });
     });
 
+    // Close popup
+
     const closeModal = () => {
+
       metricModal.classList.remove('is-open');
+
       metricModal.setAttribute('aria-hidden', 'true');
     };
 
     modalClose.addEventListener('click', closeModal);
-    metricModal.addEventListener('click', (e) => { if (e.target === metricModal) closeModal(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+    metricModal.addEventListener('click', (e) => {
+
+      if (e.target === metricModal) {
+        closeModal();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+    });
+
   </script>
 </body>
 </html>
